@@ -1,0 +1,194 @@
+{
+  "name": "Merge or Reject AI Code Review",
+  "description": "A game where developers test their code review skills against AI-generated code snippets",
+  "stack": {
+    "frontend": {
+      "framework": "React",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS",
+      "icons": "Lucide React",
+      "routing": "React Router",
+      "auth": "Clerk",
+      "state": "React Hooks"
+    },
+    "backend": {
+      "database": "Convex",
+      "ai": "OpenAI API"
+    },
+    "deployment": {
+      "hosting": "Netlify",
+      "build": "Vite"
+    }
+  },
+  "requiredExperience": {
+    "languages": [
+      {
+        "name": "TypeScript",
+        "level": "Intermediate",
+        "specifics": [
+          "Type definitions",
+          "Interfaces",
+          "Generics",
+          "React with TypeScript"
+        ]
+      },
+      {
+        "name": "JavaScript",
+        "level": "Intermediate",
+        "specifics": [
+          "ES6+ features",
+          "Async/await",
+          "Promises",
+          "DOM manipulation"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "React",
+        "level": "Intermediate",
+        "specifics": [
+          "Hooks (useState, useEffect, useRef)",
+          "Context API",
+          "Component lifecycle",
+          "Performance optimization"
+        ]
+      },
+      {
+        "name": "Tailwind CSS",
+        "level": "Intermediate",
+        "specifics": [
+          "Responsive design",
+          "Custom configurations",
+          "Dark mode",
+          "Animation classes"
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "name": "Vite",
+        "level": "Basic",
+        "specifics": [
+          "Project setup",
+          "Development server",
+          "Build configuration"
+        ]
+      },
+      {
+        "name": "Git",
+        "level": "Basic",
+        "specifics": [
+          "Version control",
+          "Branching",
+          "Pull requests"
+        ]
+      }
+    ]
+  },
+  "features": {
+    "authentication": {
+      "provider": "Clerk",
+      "features": [
+        "Email/password signup",
+        "User profiles",
+        "Role-based access",
+        "Admin dashboard"
+      ]
+    },
+    "database": {
+      "provider": "Convex",
+      "schemas": [
+        "users",
+        "games",
+        "codeSnippets",
+        "languageVolumes",
+        "gameSettings",
+        "userStats"
+      ]
+    },
+    "gamePlay": {
+      "mechanics": [
+        "Multiple programming languages",
+        "Three difficulty levels",
+        "Time-based challenges",
+        "Score tracking",
+        "Volume progression"
+      ],
+      "languages": [
+        "TypeScript",
+        "JavaScript",
+        "Python",
+        "Rust",
+        "Go",
+        "SQL"
+      ],
+      "difficulties": {
+        "easy": {
+          "timeLimit": 120,
+          "rounds": 3
+        },
+        "medium": {
+          "timeLimit": 100,
+          "rounds": 5
+        },
+        "hard": {
+          "timeLimit": 30,
+          "rounds": 7
+        }
+      }
+    },
+    "adminDashboard": {
+      "features": [
+        "Code snippet management",
+        "AI snippet generation",
+        "Game settings configuration",
+        "Analytics tracking",
+        "User management"
+      ]
+    },
+    "ui": {
+      "components": [
+        "Dark/light mode toggle",
+        "Responsive design",
+        "Animated transitions",
+        "Code syntax highlighting",
+        "Confetti celebrations",
+        "Leaderboards"
+      ]
+    }
+  },
+  "development": {
+    "prerequisites": [
+      "Node.js 18+",
+      "npm or yarn",
+      "Git",
+      "OpenAI API key",
+      "Clerk account",
+      "Convex account"
+    ],
+    "setup": [
+      "Clone repository",
+      "Install dependencies",
+      "Configure environment variables",
+      "Set up Clerk authentication",
+      "Initialize Convex database",
+      "Configure OpenAI API"
+    ],
+    "environmentVariables": [
+      "VITE_CLERK_PUBLISHABLE_KEY",
+      "VITE_OPENAI_API_KEY",
+      "CONVEX_DEPLOYMENT",
+      "CLERK_SECRET_KEY"
+    ]
+  },
+  "deployment": {
+    "provider": "Netlify",
+    "configuration": {
+      "buildCommand": "npx convex deploy --cmd 'npm run build'",
+      "publishDirectory": "dist",
+      "environmentVariables": true,
+      "automaticDeploys": true
+    }
+  }
+}

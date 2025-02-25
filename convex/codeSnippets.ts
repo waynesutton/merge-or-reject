@@ -1,0 +1,181 @@
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+import { Language, Difficulty } from "./types";
+import { Id } from "./_generated/dataModel";
+import OpenAI from "openai";
+
+const openai = new OpenAI();
+
+/**
+ * Get code snippets for a game session - public access
+ */
+export const getCodeSnippets = query({
+  args: {
+    language: v.string(),
+    volume: v.number(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    limit: v.number(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("codeSnippets"),
+      language: v.string(),
+      volume: v.number(),
+      code: v.string(),
+      isValid: v.boolean(),
+      difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+      explanation: v.string(),
+      tags: v.array(v.string()),
+      aiGenerated: v.optional(v.boolean()),
+      createdAt: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("codeSnippets")
+      .withIndex("by_language_volume", (q) =>
+        q.eq("language", args.language as Language).eq("volume", args.volume)
+      )
+      .filter((q) => q.eq(q.field("difficulty"), args.difficulty))
+      .take(args.limit);
+  },
+});
+
+/**
+ * Generate AI code snippets
+ */
+async function generateAISnippets(
+  language: Language,
+  difficulty: Difficulty,
+  count: number,
+  validRatio: number
+): Promise<
+  Array<{
+    code: string;
+    isValid: boolean;
+    explanation: string;
+    tags: string[];
+  }>
+> {
+  const validCount = Math.round(count * validRatio);
+  const invalidCount = count - validCount;
+
+  const prompt = `Generate ${count} ${language} code snippets:
+  - ${validCount} valid snippets
+  - ${invalidCount} invalid snippets with subtle bugs
+  - Difficulty level: ${difficulty}
+  - Each snippet should be 5-15 lines
+  - Include explanation of why each snippet is valid/invalid
+  - Add relevant tags for each snippet
+  
+  Format each snippet as JSON:
+  {
+    "code": "code here",
+    "isValid": boolean,
+    "explanation": "explanation here",
+    "tags": ["tag1", "tag2"]
+  }`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a code review expert who generates code snippets for testing developers' ability to spot bugs.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    response_format: { type: "json_object" },
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) throw new Error("No content in response");
+
+  try {
+    const result = JSON.parse(content);
+    return result.snippets;
+  } catch (error) {
+    throw new Error("Failed to parse AI response");
+  }
+}
+
+/**
+ * Add a new code snippet and optionally generate AI variations - public access
+ */
+export const addSnippet = mutation({
+  args: {
+    language: v.string(),
+    volume: v.number(),
+    code: v.string(),
+    isValid: v.boolean(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    explanation: v.string(),
+    tags: v.array(v.string()),
+    generateAIVariants: v.optional(v.boolean()),
+  },
+  returns: v.id("codeSnippets"),
+  handler: async (ctx, args) => {
+    // Add the base snippet
+    const baseSnippetId = await ctx.db.insert("codeSnippets", {
+      language: args.language as Language,
+      volume: args.volume,
+      code: args.code,
+      isValid: args.isValid,
+      difficulty: args.difficulty,
+      createdAt: new Date().toISOString(),
+      explanation: args.explanation,
+      tags: args.tags,
+      aiGenerated: false,
+    });
+
+    // Generate AI variants if requested
+    if (args.generateAIVariants) {
+      const settings = await ctx.db.query("gameSettings").first();
+      if (!settings?.aiGeneration.enabled) {
+        return baseSnippetId;
+      }
+
+      const aiSnippets = await generateAISnippets(
+        args.language as Language,
+        args.difficulty,
+        settings.aiGeneration.maxPerRequest,
+        settings.aiGeneration.validRatio
+      );
+
+      // Add AI-generated snippets
+      for (const snippet of aiSnippets) {
+        await ctx.db.insert("codeSnippets", {
+          language: args.language as Language,
+          volume: args.volume,
+          code: snippet.code,
+          isValid: snippet.isValid,
+          difficulty: args.difficulty,
+          createdAt: new Date().toISOString(),
+          explanation: snippet.explanation,
+          tags: snippet.tags,
+          aiGenerated: true,
+        });
+      }
+
+      // Update volume stats
+      const volume = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", args.language))
+        .unique();
+
+      if (volume) {
+        await ctx.db.patch(volume._id, {
+          snippetCount: volume.snippetCount + 1 + aiSnippets.length,
+          aiGeneratedCount: volume.aiGeneratedCount + aiSnippets.length,
+          lastAiGeneration: new Date().toISOString(),
+        });
+      }
+    }
+
+    return baseSnippetId;
+  },
+});

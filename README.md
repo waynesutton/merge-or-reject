@@ -1,161 +1,140 @@
-# Merge or Reject AI Code Review
+# Merge or Reject - Open Source Code Review Game
 
-Merge or Reject AI Code Review - Merge is a game where developers test their code review skills vs AI.
+Merge or Reject is an open source game where developers test their code review skills against AI-generated code snippets. Players must decide whether to merge or reject code based on their analysis, making it a fun way to improve code review abilities.
 
-Click Merge if the code is correct, or Reject if you spot any issues. Be quick but careful!
-Beat the Clock - Complete the rounds based on difficulty level within the time limit. A perfect score to unlock the confetti celebration!
+## 🎮 Game Features
 
-## Game Mechanics
+### Core Features
 
-When a user starts a game:
+- Anonymous user support with persistent scores
+- Real-time code snippet validation game
+- Multiple programming languages (TypeScript, JavaScript, Python, Java, C++, Rust)
+- Three difficulty levels (Easy, Medium, Hard)
+- Volume-based content progression
+- AI-generated code snippets using GPT-4
 
-1. **Game Session Creation**
-   - User selects a programming language
-   - A new game record is created in the database with:
-     ```typescript
-     {
-       userId: string,           // ID of the player
-       language: string,         // Selected language (e.g., "typescript")
-       level: number,           // Selected difficulty level (1, 2, or 3)
-       score: number,           // Starting at 0
-       volume: number,          // Current volume number
-       timestamp: string,       // Game start time
-       snippetsPlayed: string[], // Array of snippet IDs used in the game
-       userAnswers: boolean[]    // Array tracking user's merge/reject decisions
-     }
-     ```
+### Game Mechanics
 
-2. **During Gameplay**
-   - The `snippetsPlayed` array tracks which code snippets were shown
-   - The `userAnswers` array records whether the user chose to merge (true) or reject (false) each snippet
-   - The `score` is updated based on correct decisions
-   - Time limits vary by difficulty:
-     - Easy: 120 seconds per snippet, 3 rounds total
-     - Medium: 100 seconds per snippet, 5 rounds total
-     - Hard: 30 seconds per snippet, 7 rounds total
-
-3. **Game Completion**
-   - Final score is saved
-   - User stats are updated in the `userStats` table
-   - Game record serves as a historical record of the play session
-   - Confetti celebration triggers for perfect scores:
-     - Easy: 3/3 correct
-     - Medium: 5/5 correct
-     - Hard: 7/7 correct
-
-4. **Volume Progression**
-   - Each language has multiple volumes of snippets
-   - Players progress through volumes as they complete games
-   - New volumes can be unlocked based on performance
-   - Each volume contains a mix of:
-     - Manually created snippets
-     - AI-generated variations
-     - Different difficulty levels
-
-This schema enables:
-- Individual game session tracking
-- Recording of used snippets
-- Storage of user decisions
-- Game history maintenance
-- Accurate statistics and leaderboards
-
-## Features
-
-### Game Features
-- Multiple programming languages (TypeScript, JavaScript, Python, Rust, Go, SQL)
-- Three difficulty levels with varying time limits and rounds
-- Real-time code review with timer
-- Score tracking and leaderboards
-- Dark/Light mode toggle
-- Social sharing options
-- Volume-based progression system
+- Time-limited rounds based on difficulty:
+  - Easy: 120 seconds, 3 rounds
+  - Medium: 100 seconds, 5 rounds
+  - Hard: 30 seconds, 7 rounds
+- Instant feedback on decisions
+- Detailed explanations for each snippet
+- Score tracking and statistics
 - Confetti celebration for perfect scores
 
-### Admin Dashboard Features
+### User Features
 
-#### Code Snippet Management
-- View, add, edit, and delete code snippets
-- Filter snippets by language and difficulty
-- Manage snippet volumes
-- Track snippet statistics
+- Anonymous user creation
+- Persistent scores and stats
+- Personal best tracking
+- Language-specific progress
 
-#### AI Integration
-- Automatic code snippet generation
-- Configurable valid/invalid ratio
-- Generation limits and controls
-- Quality monitoring
+### Social Features
 
-#### Game Settings
-- Adjust time limits per difficulty
-- Configure snippets per game
-- Manage volume progression
-- Set AI generation parameters
+- Global leaderboards
+- Recent games feed
+- Share scores on social media
+- Volume progression tracking
 
-#### Analytics
-- Track snippet usage
-- Monitor AI-generated content
-- View language popularity
-- Analyze user performance
+### Admin Features
 
-## Technical Stack
+- Dashboard with game statistics
+- Code snippet management
+- AI snippet generation control
+- Volume and difficulty management
 
-- React with TypeScript
+## 🛠 Tech Stack
+
+### Frontend
+
+- React 18 with TypeScript
+- Vite for build tooling
 - Tailwind CSS for styling
-- Clerk for authentication
-- Convex for database
-- OpenAI for AI snippet generation
 - Lucide React for icons
+- Canvas Confetti for celebrations
 
-## Database Schema
+### Backend
 
-### Tables
+- Convex for serverless backend
+- Real-time data synchronization
+- OpenAI GPT-4 integration
+- Public API access
 
-1. **users**
-   - User profiles and authentication
-   - Tracks game progress and achievements
+### Database
 
-2. **games**
-   - Individual game sessions
-   - Player decisions and scores
+- Convex's built-in database
+- Real-time subscriptions
+- Optimized indexes
+- Automatic scaling
 
-3. **codeSnippets**
-   - Code content and metadata
-   - AI generation tracking
-   - Difficulty and language info
+## 📁 Project Structure
 
-4. **languageVolumes**
-   - Volume progression per language
-   - Snippet counts and limits
+### Convex Backend
 
-5. **gameSettings**
-   - Global game configuration
-   - AI generation settings
+- `convex/schema.ts` - Database schema definition
+- `convex/game.ts` - Game session management
+- `convex/games.ts` - Game creation and retrieval
+- `convex/scores.ts` - Score tracking and leaderboards
+- `convex/users.ts` - Anonymous user management
+- `convex/snippets.ts` - Code snippet management
+- `convex/admin.ts` - Admin dashboard functions
+- `convex/settings.ts` - Game configuration
+- `convex/init.ts` - Initial setup
 
-6. **userStats**
-   - Per-language statistics
-   - Achievement tracking
+### Frontend Components
 
-## Development
+- `src/App.tsx` - Main application
+- `src/components/GameResult.tsx` - Game completion UI
+- `src/components/ScoresPage.tsx` - Leaderboards
+- `src/components/CodeDisplay.tsx` - Code display
+- `src/components/Timer.tsx` - Game countdown
+- `src/components/HomePage.tsx` - Landing page
 
-```bash
-# Install dependencies
+## 🚀 Getting Started
+
+1. Clone the repository:
+   \`\`\`bash
+   git clone https://github.com/yourusername/merge-or-reject.git
+   cd merge-or-reject
+   \`\`\`
+
+2. Install dependencies:
+   \`\`\`bash
 npm install
+   \`\`\`
 
-# Start development server
+3. Set up environment variables:
+   \`\`\`bash
+   cp .env.example .env
+
+# Add your OpenAI API key
+
+\`\`\`
+
+4. Start the development server:
+   \`\`\`bash
 npm run dev
+   \`\`\`
 
-# Build for production
-npm run build
-```
+## 🤝 Contributing
 
-## Contributing
+We welcome contributions! Here's how you can help:
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch: \`git checkout -b feature/amazing-feature\`
+3. Commit your changes: \`git commit -m 'Add amazing feature'\`
+4. Push to the branch: \`git push origin feature/amazing-feature\`
 5. Open a Pull Request
 
-## License
+## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.# merge-or-reject
+This project is open source and available under the MIT License.
+
+## 🙏 Acknowledgments
+
+- OpenAI for GPT-4 API
+- Convex for backend infrastructure
+- React and Vite teams
+- All contributors and players!
