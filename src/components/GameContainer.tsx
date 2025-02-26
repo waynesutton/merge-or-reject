@@ -350,7 +350,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       // Create anonymous user first if needed
       let currentUserId = userId;
       if (!currentUserId) {
-        const result = await createAnonymousUser();
+        const result = await createAnonymousUser({ name: playerName });
         currentUserId = result.userId;
         setUserId(result.userId);
         setPlayerName(result.name);

@@ -4,16 +4,18 @@ import { Difficulty, Language } from "../src/types";
 import { internal } from "./_generated/api";
 import { QueryCtx, MutationCtx, ActionCtx } from "./_generated/server";
 import OpenAI from "openai";
+import { requireAdmin } from "./auth";
 
 const openai = new OpenAI();
 
 /**
- * Get code snippets for admin dashboard - public access
+ * Get code snippets for admin dashboard - admin only
  */
 export const getAdminSnippets = query({
   args: {
     language: v.string(),
     difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    clerkId: v.string(),
   },
   returns: v.array(
     v.object({
@@ -31,6 +33,14 @@ export const getAdminSnippets = query({
     })
   ),
   handler: async (ctx, args) => {
+    // Verify admin access
+    try {
+      await requireAdmin(ctx, args.clerkId);
+    } catch (error) {
+      console.error("Admin access denied:", error);
+      return [];
+    }
+
     return await ctx.db
       .query("codeSnippets")
       .withIndex("by_language_difficulty", (q) =>
@@ -99,7 +109,7 @@ export const _generateAISnippets = internalAction({
 });
 
 /**
- * Add a new code snippet - public access
+ * Add a new code snippet - admin only
  */
 export const addSnippet = mutation({
   args: {
@@ -111,9 +121,13 @@ export const addSnippet = mutation({
     explanation: v.string(),
     tags: v.array(v.string()),
     generateAIVariants: v.optional(v.boolean()),
+    clerkId: v.string(),
   },
   returns: v.id("codeSnippets"),
   handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
     const language = args.language as Language;
     const difficulty = args.difficulty as Difficulty;
 
@@ -231,14 +245,18 @@ export const _saveGeneratedSnippets = internalMutation({
 });
 
 /**
- * Delete a code snippet - public access
+ * Delete a code snippet - admin only
  */
 export const deleteSnippet = mutation({
   args: {
     id: v.id("codeSnippets"),
+    clerkId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
     const snippet = await ctx.db.get(args.id);
     if (!snippet) throw new Error("Snippet not found");
 
@@ -258,22 +276,6 @@ export const deleteSnippet = mutation({
     }
 
     await ctx.db.delete(args.id);
-
-    // Update language volume counts
-    const volume = await ctx.db
-      .query("languageVolumes")
-      .withIndex("by_language", (q) => q.eq("language", snippet.language as Language))
-      .first();
-
-    if (volume) {
-      await ctx.db.patch(volume._id, {
-        snippetCount: Math.max(0, volume.snippetCount - 1),
-        aiGeneratedCount: snippet.aiGenerated
-          ? Math.max(0, volume.aiGeneratedCount - 1)
-          : volume.aiGeneratedCount,
-      });
-    }
-
     return null;
   },
 });
@@ -301,16 +303,20 @@ export const createSnippet = mutation({
 });
 
 /**
- * Generate more code snippets using AI - public access
+ * Generate more code snippets using AI - admin only
  */
 export const generateMoreSnippets = mutation({
   args: {
     language: v.string(),
     difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
     volume: v.number(),
+    clerkId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
     // Get AI generation settings
     const settings = await ctx.db.query("gameSettings").first();
     if (!settings?.aiGeneration.enabled) {

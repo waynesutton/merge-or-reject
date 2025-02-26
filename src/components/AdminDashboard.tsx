@@ -1,22 +1,7 @@
-/**
- * AdminDashboard.tsx
- *
- * Admin dashboard component that provides management interface for the application.
- *
- * Changes made:
- * - Added proper authentication handling with Clerk
- * - Added admin role verification
- * - Fixed type errors in API calls
- * - Added loading states for authentication
- * - Improved error handling for unauthorized access
- * - Added logout functionality
- * - Fixed user role checking with Clerk integration
- */
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
-import { useUser, SignedOut, RedirectToSignIn, useClerk } from "@clerk/clerk-react";
+import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import {
   ArrowLeft,
@@ -32,13 +17,11 @@ import {
   AlertTriangle,
   RefreshCw,
   Bot,
-  Info,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { LANGUAGES, LEVEL_TIMES, Language, Difficulty } from "../types";
-import Header from "./Header";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { Id } from "../../convex/_generated/dataModel";
+import Toaster from "./Toaster";
 
 interface AdminDashboardProps {
   isDarkMode: boolean;
@@ -48,7 +31,6 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeToggle }) => {
   const navigate = useNavigate();
   const { user, isSignedIn, isLoaded } = useUser();
-  const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState<"snippets" | "settings">("snippets");
   const [expandedSnippet, setExpandedSnippet] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("typescript");
@@ -63,144 +45,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
-  const [syncAttempted, setSyncAttempted] = useState(false);
 
-  // Check if user is admin
-  const userRole = useQuery(api.users.getUserRole, {
-    clerkId: user?.id ?? "",
-  });
-
-  // Manual sync function
-  const syncUser = useMutation(api.users.syncClerkUser);
-
-  // Try to sync the user if they're not found in the database
+  // Log authentication state for debugging
   useEffect(() => {
-    const attemptSync = async () => {
-      if (isSignedIn && user && userRole === null && !syncAttempted) {
-        setSyncAttempted(true);
-
-        // Get primary email
-        const primaryEmail = user.primaryEmailAddress?.emailAddress || "";
-
-        // Get user name
-        const firstName = user.firstName || "";
-        const lastName = user.lastName || "";
-        const name = [firstName, lastName].filter(Boolean).join(" ") || "Admin User";
-
-        // Check if user has admin role in metadata
-        const isAdmin = user.publicMetadata?.role === "admin";
-
-        console.log("Syncing user:", {
-          id: user.id,
-          email: primaryEmail,
-          name,
-          isAdmin,
-          metadata: user.publicMetadata,
-        });
-
-        // Sync user to database
-        await syncUser({
-          clerkId: user.id,
-          email: primaryEmail,
-          name: name,
-          role: isAdmin ? "admin" : "user",
-        });
-
-        // Force a refresh of the role query
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }
-    };
-
-    attemptSync();
-  }, [user, userRole, isSignedIn, syncUser, syncAttempted]);
-
-  // Show loading state while checking authentication
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl mb-4">Loading...</h1>
-        </div>
-      </div>
-    );
-  }
-
-  // Redirect to sign in if not authenticated
-  if (!isSignedIn) {
-    return <RedirectToSignIn />;
-  }
-
-  // Check if user has admin role in Clerk metadata
-  const hasAdminMetadata = user?.publicMetadata?.role === "admin";
-
-  // Show error if not admin
-  if (userRole !== "admin") {
-    return (
-      <>
-        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} clerk={{ signOut, user }} />
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center max-w-md mx-auto">
-            <h1 className="text-2xl mb-4">Access Denied</h1>
-            <p className="text-gray-400 mb-8">You do not have administrator privileges.</p>
-
-            {syncAttempted && (
-              <div className="bg-black/30 p-4 rounded-lg mb-6 text-left">
-                <h2 className="flex items-center text-lg mb-2 text-amber-400">
-                  <Info className="w-5 h-5 mr-2" />
-                  Troubleshooting
-                </h2>
-                <ul className="list-disc pl-6 text-sm text-gray-300 space-y-2">
-                  <li>
-                    <strong>Current user:</strong> {user?.id}
-                    {hasAdminMetadata ? (
-                      <span className="text-green-400"> (Has admin role in Clerk)</span>
-                    ) : (
-                      <span className="text-red-400"> (No admin role in Clerk)</span>
-                    )}
-                  </li>
-                  <li>
-                    <strong>Fix:</strong> Go to your Clerk Dashboard, find this user, and add
-                    <code className="bg-black/40 px-2 py-1 rounded mx-1 text-xs">
-                      {'{ "role": "admin" }'}
-                    </code>
-                    to the Public Metadata.
-                  </li>
-                  <li>After updating in Clerk, refresh this page to try again.</li>
-                </ul>
-              </div>
-            )}
-
-            <button
-              onClick={() => navigate("/")}
-              className="px-6 py-3 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
-              Return Home
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
+    console.log("Auth state:", { isLoaded, isSignedIn, userId: user?.id });
+  }, [isLoaded, isSignedIn, user]);
 
   const AdminContent = () => {
     const settings = useQuery(api.settings.getSettings);
     const snippets = useQuery(api.snippets.getAdminSnippets, {
       language: selectedLanguage,
       difficulty: selectedDifficulty,
-    });
+      clerkId: user?.id,
+    } as any);
     const addSnippetMutation = useMutation(api.snippets.addSnippet);
     const generateMoreSnippetsMutation = useMutation(api.snippets.generateMoreSnippets);
     const updateSettingsMutation = useMutation(api.settings.updateSettings);
     const createNewVolumeMutation = useMutation(api.settings.createNewVolume);
     const deleteSnippetMutation = useMutation(api.snippets.deleteSnippet);
 
-    // Handle loading state
-    if (!settings || !snippets) {
+    // Handle unauthorized access or loading state
+    if (!user?.id || !settings || !snippets) {
       return (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <h1 className="text-2xl mb-4">Loading...</h1>
+            <h1 className="text-2xl mb-4">Access Denied</h1>
+            <p className="text-gray-400 mb-8">You do not have permission to access this page.</p>
+            <button
+              onClick={() => navigate("/")}
+              className="px-6 py-3 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+              Return Home
+            </button>
           </div>
         </div>
       );
@@ -248,7 +123,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         newSettings.snippetsPerGame[difficulty] = value;
       }
 
-      updateSettingsMutation(newSettings);
+      updateSettingsMutation({
+        ...newSettings,
+        clerkId: user?.id,
+      });
     };
 
     const handleAddSnippet = async () => {
@@ -261,6 +139,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           difficulty: selectedDifficulty,
           explanation: newSnippet.explanation,
           tags: newSnippet.tags,
+          clerkId: user?.id,
         });
         setShowAddSnippet(false);
         setNewSnippet({ code: "", isValid: true, explanation: "", volume: 1, tags: [] });
@@ -271,7 +150,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleCreateNewVolume = async (language: Language) => {
       try {
-        await createNewVolumeMutation({ language });
+        await createNewVolumeMutation({
+          language,
+          clerkId: user?.id,
+        });
       } catch (error) {
         console.error("Error creating new volume:", error);
       }
@@ -287,9 +169,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           language: selectedLanguage,
           difficulty: selectedDifficulty,
           volume,
+          clerkId: user?.id,
         });
       } catch (error: any) {
-        setGenerationError(error?.message || "An error occurred while generating snippets");
+        setGenerationError(error.message || "An error occurred during generation");
       } finally {
         setIsGenerating(false);
       }
@@ -297,10 +180,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleDeleteSnippet = async (snippetId: string) => {
       try {
-        await deleteSnippetMutation({ id: snippetId as Id<"codeSnippets"> });
-        toast.success("Snippet deleted successfully");
+        await deleteSnippetMutation({
+          id: snippetId as any,
+          clerkId: user?.id,
+        });
       } catch (error) {
-        toast.error("Failed to delete snippet");
+        console.error("Error deleting snippet:", error);
       }
     };
 
@@ -434,6 +319,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                         ...settingsData.settings.aiGeneration,
                         enabled: e.target.checked,
                       },
+                      clerkId: user?.id,
                     })
                   }
                   className="rounded bg-black/30"
@@ -455,6 +341,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                         ...settingsData.settings.aiGeneration,
                         validRatio: parseFloat(e.target.value),
                       },
+                      clerkId: user?.id,
                     })
                   }
                   className="w-full"
@@ -482,6 +369,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                           ...settingsData.settings.aiGeneration,
                           maxPerRequest: parseInt(e.target.value),
                         },
+                        clerkId: user?.id,
                       })
                     }
                     min="1"
@@ -502,6 +390,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                           ...settingsData.settings.aiGeneration,
                           minSnippetsBeforeGeneration: parseInt(e.target.value),
                         },
+                        clerkId: user?.id,
                       })
                     }
                     min="1"
@@ -516,42 +405,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           <div>
             <h3 className="text-lg mb-4">Language Volumes</h3>
             <div className="space-y-6">
-              {Object.entries(LANGUAGES).map(([key, name]) => {
-                const volume = settingsData.volumes.find((v) => v.language === key);
+              {settingsData.volumes.map((volume) => {
+                const languageName =
+                  LANGUAGES[volume.language as keyof typeof LANGUAGES] ||
+                  volume.language.charAt(0).toUpperCase() + volume.language.slice(1);
                 return (
-                  <div key={key} className="space-y-4">
+                  <div key={volume.language} className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-[#00FF94]">{name}</h4>
+                      <h4 className="text-[#00FF94]">{languageName}</h4>
                       <button
-                        onClick={() => handleCreateNewVolume(key as Language)}
+                        onClick={() => handleCreateNewVolume(volume.language as Language)}
                         className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
                         <Plus className="w-4 h-4" />
                         <span>New Volume</span>
                       </button>
                     </div>
 
-                    {volume && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-black/20 p-4 rounded-lg">
-                        <div>
-                          <span className="text-sm text-gray-400">Total Snippets</span>
-                          <p className="text-xl">{volume.snippetCount}</p>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">AI Generated</span>
-                          <p className="text-xl">{volume.aiGeneratedCount}</p>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Manual</span>
-                          <p className="text-xl">{volume.snippetCount - volume.aiGeneratedCount}</p>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Last Generation</span>
-                          <p className="text-sm">
-                            {new Date(volume.lastAiGeneration).toLocaleDateString()}
-                          </p>
-                        </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-black/20 p-4 rounded-lg">
+                      <div>
+                        <span className="text-sm text-gray-400">Total Snippets</span>
+                        <p className="text-xl">{volume.snippetCount}</p>
                       </div>
-                    )}
+                      <div>
+                        <span className="text-sm text-gray-400">Last Updated</span>
+                        <p className="text-sm">
+                          {new Date(volume.lastAiGeneration).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-400">Current Volume</span>
+                        <p className="text-xl">{volume.currentVolume}</p>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -786,10 +671,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   };
 
   return (
-    <>
-      <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} clerk={{ signOut, user }} />
-      <AdminContent />
-    </>
+    <div className="max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => navigate("/")}
+            className="px-4 py-2 bg-gray-600 text-white rounded">
+            Back to Home
+          </button>
+          <button onClick={onThemeToggle} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Use Clerk components for auth protection */}
+      <SignedIn>
+        <AdminContent />
+      </SignedIn>
+      <SignedOut>
+        <RedirectToSignIn />
+      </SignedOut>
+
+      <Toaster />
+    </div>
   );
 };
 

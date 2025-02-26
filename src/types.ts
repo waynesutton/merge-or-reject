@@ -1,6 +1,14 @@
 import { Id } from "../convex/_generated/dataModel";
 
-export type Language = "typescript" | "javascript" | "python" | "java" | "cpp" | "rust";
+export type Language =
+  | "typescript"
+  | "javascript"
+  | "python"
+  | "java"
+  | "cpp"
+  | "rust"
+  | "go"
+  | "sql";
 
 export const LANGUAGES: Record<Language, string> = {
   typescript: "TypeScript",
@@ -9,6 +17,8 @@ export const LANGUAGES: Record<Language, string> = {
   java: "Java",
   cpp: "C++",
   rust: "Rust",
+  go: "Go",
+  sql: "SQL",
 };
 
 export type Level = 1 | 2 | 3;

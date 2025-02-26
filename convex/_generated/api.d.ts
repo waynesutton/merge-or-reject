@@ -17,6 +17,7 @@ import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as clerk from "../clerk.js";
 import type * as codeSnippets from "../codeSnippets.js";
+import type * as debug from "../debug.js";
 import type * as fix from "../fix.js";
 import type * as game from "../game.js";
 import type * as games from "../games.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   clerk: typeof clerk;
   codeSnippets: typeof codeSnippets;
+  debug: typeof debug;
   fix: typeof fix;
   game: typeof game;
   games: typeof games;

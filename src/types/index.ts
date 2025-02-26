@@ -1,4 +1,5 @@
 import { Id } from "../../convex/_generated/dataModel";
+import { LANGUAGES } from "../types";
 
 export type Level = 1 | 2 | 3;
 export type Language = string;
@@ -25,14 +26,7 @@ export const LEVEL_ROUNDS: Record<Level, number> = {
   3: 7, // Hard - 1/7 rounds
 };
 
-export const LANGUAGES: Record<Language, string> = {
-  typescript: "TypeScript",
-  rust: "Rust",
-  javascript: "JavaScript",
-  python: "Python",
-  go: "Go",
-  sql: "SQL",
-};
+export { LANGUAGES };
 
 export type Difficulty = "easy" | "medium" | "hard";
 

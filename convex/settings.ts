@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Language } from "../src/types";
+import { requireAdmin } from "./auth";
 
 // Initialize settings if they don't exist
 export const initializeSettings = mutation({
@@ -129,7 +130,7 @@ export const getSettings = query({
   },
 });
 
-// Update game settings - public access
+// Update game settings - admin only
 export const updateSettings = mutation({
   args: {
     timeLimits: v.optional(
@@ -154,8 +155,12 @@ export const updateSettings = mutation({
         minSnippetsBeforeGeneration: v.number(),
       })
     ),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
     const settings = await ctx.db.query("gameSettings").first();
 
     if (settings) {
@@ -188,12 +193,16 @@ export const updateSettings = mutation({
   },
 });
 
-// Create a new volume for a language - public access
+// Create a new volume for a language - admin only
 export const createNewVolume = mutation({
   args: {
     language: v.string(),
+    clerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
     const volume = await ctx.db
       .query("languageVolumes")
       .withIndex("by_language", (q) => q.eq("language", args.language as Language))

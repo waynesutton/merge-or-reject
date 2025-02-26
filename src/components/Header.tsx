@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, onThemeToggle, clerk }) => 
             </button>
           )}
 
-          {isHomePage && clerk?.user && (
+          {clerk?.user && (
             <button
               onClick={() => {
                 if (clerk.signOut) {

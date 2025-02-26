@@ -157,9 +157,12 @@ export const createAnonymousUser = mutation({
   args: {
     name: v.string(),
   },
-  returns: v.id("users"),
+  returns: v.object({
+    userId: v.id("users"),
+    name: v.string(),
+  }),
   handler: async (ctx, args) => {
-    return await ctx.db.insert("users", {
+    const userId = await ctx.db.insert("users", {
       name: args.name,
       role: "user",
       isAnonymous: true,
@@ -167,6 +170,11 @@ export const createAnonymousUser = mutation({
       averageScore: 0,
       createdAt: new Date().toISOString(),
     });
+
+    return {
+      userId,
+      name: args.name,
+    };
   },
 });
 
