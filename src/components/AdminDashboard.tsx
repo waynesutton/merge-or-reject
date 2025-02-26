@@ -254,9 +254,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <label className="block text-sm text-gray-400 mb-1">Code</label>
               <textarea
                 value={newSnippet.code}
-                onChange={(e) => setNewSnippet((prev) => ({ ...prev, code: e.target.value }))}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setNewSnippet((prev) => ({
+                    ...prev,
+                    code: newValue,
+                  }));
+                }}
                 className="w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono"
                 placeholder="Enter code snippet here..."
+                spellCheck="false"
+                autoComplete="off"
               />
             </div>
 

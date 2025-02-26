@@ -37,6 +37,7 @@ export const startGame = mutation({
       .withIndex("by_language_volume", (q) =>
         q.eq("language", args.language as Language).eq("volume", args.volume)
       )
+      .filter((q) => q.eq(q.field("difficulty"), difficulty))
       .take(snippetsNeeded);
 
     if (snippets.length < snippetsNeeded) {

@@ -1,5 +1,20 @@
 # Prompt Log
 
+## [2024-06-10]
+
+### Admin Dashboard Authentication & API Fixes
+
+**Prompt**: Fix `/admin` page flashing issue and ensure proper Clerk login
+**Changes Made**:
+
+- Replaced manual redirect in `useEffect` with Clerk's authentication components
+- Added `<SignedIn>` and `<SignedOut>` with `<RedirectToSignIn />` to properly show the login form
+- Added authentication state logging for debugging
+- Fixed the `getSettings` API call by removing the `clerkId` parameter
+- Properly formatted the `deleteSnippet` call to use `id` instead of `snippetId`
+- Removed unnecessary `as any` type assertions where possible
+- Created a `Toaster` component for notifications using react-toastify
+
 ## [2024-03-19]
 
 1. User requested verification of anonymous user game flow:
