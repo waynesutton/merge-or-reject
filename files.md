@@ -14,11 +14,12 @@
 - `convex/game.ts`
 
   - Game session management
-  - Start game functionality
+  - Start game functionality with difficulty filtering
   - Score tracking
   - Game state management
   - Snippet selection for games
   - Time limit handling
+  - Answer submission and validation
 
 - `convex/games.ts`
 
@@ -43,6 +44,8 @@
   - User statistics
   - User deletion with cascade cleanup
   - User search functionality
+  - Anonymous user name updates
+  - Admin user role management
 
 - `convex/snippets.ts`
 
@@ -52,8 +55,7 @@
   - Language-specific snippet organization
   - Volume-based snippet management
   - Snippet tagging system
-
-
+  - Snippet editing functionality
 
 - `convex/settings.ts`
 
@@ -64,10 +66,30 @@
   - AI generation settings
 
 - `convex/init.ts`
+
   - Initial setup routines
   - Default data population
   - Language volume initialization
   - Game settings initialization
+
+- `convex/auth.ts`
+
+  - Authentication handling
+  - Admin access control
+  - User role verification
+  - Protected route management
+
+- `convex/clerk.ts`
+
+  - Clerk webhook integration
+  - User synchronization
+  - Authentication events handling
+  - Admin user provisioning
+
+- `convex/debug.ts`
+  - Debugging utilities
+  - System diagnostics
+  - Data validation tools
 
 ### Generated Files
 
@@ -100,6 +122,19 @@
   - State management
   - Dark/Light mode toggle
 
+- `src/components/GameContainer.tsx`
+
+  - Main game logic
+  - User interaction handling
+  - Game state management
+  - Timer integration
+  - Snippet display
+  - Vote handling (merge/reject)
+  - Skip functionality
+  - End game functionality
+  - Navigation warnings
+  - Confirmation dialogs
+
 - `src/components/GameResult.tsx`
 
   - Game completion display
@@ -107,6 +142,7 @@
   - Share functionality
   - Statistics display
   - Replay options
+  - Anonymous user name updates
 
 - `src/components/ScoresPage.tsx`
 
@@ -127,10 +163,8 @@
 - `src/components/CodeDisplay.tsx`
 
   - Syntax highlighted code
-  - Language-specific formatting
-  - Code validation UI
-  - Explanation display
-  - Difficulty indicators
+  - Code editor styling
+  - Dark/light mode support
 
 - `src/components/Timer.tsx`
 
@@ -155,15 +189,15 @@
   - User management
   - Snippet management
   - System settings
+  - Snippet editing interface
+  - AI generation controls
 
-- `convex/admin.ts`
+- `src/components/Header.tsx`
 
-  - Admin dashboard functionality
-  - Game statistics
-  - User management
-  - Snippet management
-  - System-wide analytics
-  - Volume control
+  - Navigation header
+  - Theme toggle
+  - User information
+  - Admin access links
 
 - `src/components/Footer.tsx`
 
@@ -173,9 +207,39 @@
   - Credits display
 
 - `src/components/NotFoundPage.tsx`
+
   - 404 error handling
   - Navigation recovery
   - User guidance
+
+- `src/components/LevelSelector.tsx`
+
+  - Difficulty level selection
+  - Visual difficulty indicators
+  - Game start functionality
+
+- `src/components/LanguageSelector.tsx`
+
+  - Programming language selection
+  - Language icons and descriptions
+  - Game initialization
+
+- `src/components/ProtectedRoute.tsx`
+
+  - Admin route protection
+  - Authentication verification
+  - Redirect handling
+
+- `src/components/HowToPlay.tsx`
+
+  - Game instructions
+  - Visual guides
+  - Gameplay explanation
+
+- `src/components/Toaster.tsx`
+  - Notification system
+  - Success/error messages
+  - Timed alerts
 
 ### Utils & Types
 

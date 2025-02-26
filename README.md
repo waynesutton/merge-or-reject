@@ -2,7 +2,7 @@
 
 Merge or Reject is an open source game where developers test their code review skills against AI-generated code snippets. Players must decide whether to merge or reject code based on their analysis, making it a fun way to improve code review abilities.
 
-## �� Game Features
+## 🎮 Game Features
 
 ### Authentication & Users
 
@@ -11,6 +11,7 @@ Merge or Reject is an open source game where developers test their code review s
 - Clerk authentication is used only for admin access on the home page
 - Admin users can see a logout button on the home page
 - User scores and progress are tracked anonymously
+- Anonymous users can update their display name after completing a game
 
 ### Core Features
 
@@ -20,6 +21,8 @@ Merge or Reject is an open source game where developers test their code review s
 - Three difficulty levels (Easy, Medium, Hard)
 - Volume-based content progression
 - AI-generated code snippets using GPT-4
+- End game functionality with confirmation dialog
+- Navigation warnings to prevent accidental game abandonment
 
 ### Game Mechanics
 
@@ -27,10 +30,12 @@ Merge or Reject is an open source game where developers test their code review s
   - Easy: 120 seconds, 3 rounds
   - Medium: 100 seconds, 5 rounds
   - Hard: 30 seconds, 7 rounds
-- Instant feedback on decisions (not yet)
-- Detailed explanations for each snippet (not yet)
+- Instant feedback on decisions
+- Detailed explanations for each snippet
 - Score tracking and statistics
 - Confetti celebration for perfect scores
+- Skip option for difficult snippets
+- Visual glitch effect on reject button
 
 ### User Features
 
@@ -38,6 +43,8 @@ Merge or Reject is an open source game where developers test their code review s
 - Persistent scores and stats
 - Personal best tracking
 - Language-specific progress
+- User name customization
+- Dark/light mode toggle
 
 ### Social Features
 
@@ -52,6 +59,8 @@ Merge or Reject is an open source game where developers test their code review s
 - Code snippet management
 - AI snippet generation control
 - Volume and difficulty management
+- Edit functionality for existing snippets
+- Admin role management
 
 ## 🛠 Tech Stack
 
@@ -62,6 +71,7 @@ Merge or Reject is an open source game where developers test their code review s
 - Tailwind CSS for styling
 - Lucide React for icons
 - Canvas Confetti for celebrations
+- PowerGlitch for visual effects
 
 ### Backend
 
@@ -69,6 +79,7 @@ Merge or Reject is an open source game where developers test their code review s
 - Real-time data synchronization
 - OpenAI GPT-4 integration
 - Public API access
+- Clerk for authentication
 
 ### Database
 
@@ -90,50 +101,59 @@ Merge or Reject is an open source game where developers test their code review s
 - `convex/admin.ts` - Admin dashboard functions
 - `convex/settings.ts` - Game configuration
 - `convex/init.ts` - Initial setup
+- `convex/auth.ts` - Authentication handling
+- `convex/clerk.ts` - Clerk webhook integration
 
 ### Frontend Components
 
 - `src/App.tsx` - Main application
+- `src/components/GameContainer.tsx` - Main game logic and UI
 - `src/components/GameResult.tsx` - Game completion UI
 - `src/components/ScoresPage.tsx` - Leaderboards
 - `src/components/CodeDisplay.tsx` - Code display
 - `src/components/Timer.tsx` - Game countdown
 - `src/components/HomePage.tsx` - Landing page
+- `src/components/AdminDashboard.tsx` - Admin interface
+- `src/components/Header.tsx` - Navigation header
+- `src/components/Footer.tsx` - Page footer
 
 ## 🚀 Getting Started
 
 1. Clone the repository:
-   \`\`\`bash
+
+   ```bash
    git clone https://github.com/yourusername/merge-or-reject.git
    cd merge-or-reject
-   \`\`\`
+   ```
 
 2. Install dependencies:
-   \`\`\`bash
+
+   ```bash
    npm install
-   \`\`\`
+   ```
 
 3. Set up environment variables:
-   \`\`\`bash
+   ```bash
    cp .env.example .env
+   ```
 
 # Add your OpenAI API key
 
-\`\`\`
+````
 
 4. Start the development server:
-   \`\`\`bash
+   ```bash
    npm run dev
-   \`\`\`
+````
 
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
 
 1. Fork the repository
-2. Create your feature branch: \`git checkout -b feature/amazing-feature\`
-3. Commit your changes: \`git commit -m 'Add amazing feature'\`
-4. Push to the branch: \`git push origin feature/amazing-feature\`
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
 ## 📝 License
