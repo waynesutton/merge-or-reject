@@ -245,6 +245,38 @@ export const _saveGeneratedSnippets = internalMutation({
 });
 
 /**
+ * Update an existing code snippet - admin only
+ */
+export const updateSnippet = mutation({
+  args: {
+    id: v.id("codeSnippets"),
+    code: v.string(),
+    isValid: v.boolean(),
+    explanation: v.string(),
+    tags: v.array(v.string()),
+    clerkId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
+    const snippet = await ctx.db.get(args.id);
+    if (!snippet) throw new Error("Snippet not found");
+
+    // Update the snippet
+    await ctx.db.patch(args.id, {
+      code: args.code,
+      isValid: args.isValid,
+      explanation: args.explanation,
+      tags: args.tags,
+    });
+
+    return null;
+  },
+});
+
+/**
  * Delete a code snippet - admin only
  */
 export const deleteSnippet = mutation({

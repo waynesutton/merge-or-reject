@@ -90,12 +90,15 @@ export const clerkWebhook = internalAction({
 
     if (!email) {
       console.log(`No primary email found for user ${clerkId}`);
+    } else {
+      console.log(`Found primary email for user ${clerkId}: ${email}`);
     }
 
     // Get user name
     const firstName = data.first_name || "";
     const lastName = data.last_name || "";
     const name = [firstName, lastName].filter(Boolean).join(" ") || "Anonymous User";
+    console.log(`User name: ${name}`);
 
     // Use auth utility to check if user has admin role
     const isAdmin = hasAdminRole(data);
@@ -104,31 +107,30 @@ export const clerkWebhook = internalAction({
     switch (eventType) {
       case "user.created":
       case "user.updated":
-        // Only sync admin users to the database
-        if (isAdmin) {
-          try {
-            const result = await ctx.runMutation(internal.users._syncUser, {
-              clerkId,
-              email,
-              name,
-              role: "admin",
-            });
+        // Always sync users to the database to allow the admin flag to work
+        try {
+          console.log(
+            `Syncing user ${clerkId} with email: ${email}, name: ${name}, role: ${isAdmin ? "admin" : "user"}`
+          );
+          const result = await ctx.runMutation(internal.users._syncUser, {
+            clerkId,
+            email,
+            name,
+            role: isAdmin ? "admin" : "user",
+          });
 
-            if (result.error) {
-              console.error(`Failed to sync admin user: ${result.error}`);
-            } else {
-              console.log(
-                `${result.isNew ? "Created" : "Updated"} admin user ${result.userId} for ClerkID ${clerkId}`
-              );
-            }
-          } catch (error) {
-            console.error("Exception while syncing admin user:", error);
-            throw new Error(
-              `Failed to sync admin user: ${error instanceof Error ? error.message : String(error)}`
+          if (result.error) {
+            console.error(`Failed to sync user: ${result.error}`);
+          } else {
+            console.log(
+              `${result.isNew ? "Created" : "Updated"} user ${result.userId} for ClerkID ${clerkId}`
             );
           }
-        } else {
-          console.log(`Skipping sync for non-admin user ${clerkId}`);
+        } catch (error) {
+          console.error("Exception while syncing user:", error);
+          throw new Error(
+            `Failed to sync user: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
         break;
 

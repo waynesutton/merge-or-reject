@@ -100,6 +100,31 @@ export const _syncUser = internalMutation({
   }),
   handler: async (ctx, args) => {
     try {
+      // Skip the flag check if this is the flag entry itself
+      if (args.clerkId === "nextUserIsAdmin_flag") {
+        return { userId: "", isNew: false };
+      }
+
+      console.log(
+        `Syncing user with Clerk ID: ${args.clerkId}, email: ${args.email}, name: ${args.name}`
+      );
+
+      // Check if there's a flag to make the next user an admin
+      const nextUserIsAdminFlag = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", "nextUserIsAdmin_flag"))
+        .unique();
+
+      let role = args.role;
+
+      // If the flag exists and has the right name, make this user an admin
+      if (nextUserIsAdminFlag && nextUserIsAdminFlag.name === "NEXT_USER_IS_ADMIN") {
+        role = "admin";
+        // Clear the flag by changing the name
+        await ctx.db.patch(nextUserIsAdminFlag._id, { name: "FLAG_USED" });
+        console.log(`Making user ${args.clerkId} an admin due to nextUserIsAdmin flag`);
+      }
+
       // Check if user exists using the index for efficiency
       const existingUser = await ctx.db
         .query("users")
@@ -111,11 +136,13 @@ export const _syncUser = internalMutation({
         await ctx.db.patch(existingUser._id, {
           email: args.email,
           name: args.name,
-          role: args.role,
+          role: role,
           // Don't update isAnonymous - maintain existing setting
         });
 
-        console.log(`Updated existing user ${existingUser._id} with Clerk ID ${args.clerkId}`);
+        console.log(
+          `Updated existing user ${existingUser._id} with Clerk ID ${args.clerkId}, email: ${args.email}, name: ${args.name}, role: ${role}`
+        );
         return {
           userId: existingUser._id,
           isNew: false,
@@ -127,14 +154,16 @@ export const _syncUser = internalMutation({
         clerkId: args.clerkId,
         email: args.email,
         name: args.name,
-        role: args.role,
+        role: role,
         isAnonymous: false, // Admin users from Clerk are never anonymous
         totalGames: 0,
         averageScore: 0,
         createdAt: new Date().toISOString(),
       });
 
-      console.log(`Created new user ${userId} with Clerk ID ${args.clerkId}`);
+      console.log(
+        `Created new user ${userId} with Clerk ID ${args.clerkId}, email: ${args.email}, name: ${args.name}, role: ${role}`
+      );
       return {
         userId,
         isNew: true,
@@ -218,7 +247,7 @@ export const updateAnonymousUserName = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
-    
+
     // Only allow updating anonymous users with this function
     if (!user.isAnonymous) {
       throw new Error("This function can only update anonymous users");
@@ -417,5 +446,92 @@ export const syncClerkUser = mutation({
       console.error("Error syncing user manually:", error);
       return null;
     }
+  },
+});
+
+/**
+ * Set up a flag so the next Clerk user who logs in will become an admin
+ * This is useful for recovering admin access when all admin users are deleted
+ */
+export const makeNextUserAdmin = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    // Check if the flag already exists
+    const existingFlag = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", "nextUserIsAdmin_flag"))
+      .unique();
+
+    if (existingFlag) {
+      // Update the existing flag to ensure it has the correct name
+      await ctx.db.patch(existingFlag._id, {
+        name: "NEXT_USER_IS_ADMIN",
+        email: "admin@example.com", // Add email field
+      });
+      console.log("Updated existing flag for next admin user");
+    } else {
+      // Create a new flag
+      await ctx.db.insert("users", {
+        clerkId: "nextUserIsAdmin_flag",
+        name: "NEXT_USER_IS_ADMIN",
+        email: "admin@example.com", // Add email field
+        role: "user",
+        isAnonymous: false,
+        totalGames: 0,
+        averageScore: 0,
+        createdAt: new Date().toISOString(),
+      });
+      console.log("Created new flag for next admin user");
+    }
+
+    console.log("Next Clerk user who logs in will become an admin");
+    return null;
+  },
+});
+
+/**
+ * Manually create an admin user with the given Clerk ID
+ * This is useful for recovering admin access when all admin users are deleted
+ */
+export const createAdminUser = mutation({
+  args: {
+    clerkId: v.string(),
+    email: v.string(),
+    name: v.string(),
+  },
+  returns: v.id("users"),
+  handler: async (ctx, args) => {
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+      .unique();
+
+    if (existingUser) {
+      // Update existing user to be admin
+      await ctx.db.patch(existingUser._id, {
+        role: "admin",
+        email: args.email,
+        name: args.name,
+      });
+      console.log(`Updated existing user ${existingUser._id} to admin role`);
+      return existingUser._id;
+    }
+
+    // Create new admin user
+    const userId = await ctx.db.insert("users", {
+      clerkId: args.clerkId,
+      email: args.email,
+      name: args.name,
+      role: "admin",
+      isAnonymous: false,
+      totalGames: 0,
+      averageScore: 0,
+      createdAt: new Date().toISOString(),
+    });
+
+    console.log(`Created new admin user ${userId} with Clerk ID ${args.clerkId}`);
+    return userId;
   },
 });

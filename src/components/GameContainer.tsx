@@ -57,7 +57,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
   const glitchInstanceRef = useRef<any>(null);
   const startGame = useMutation(api.game.startGame);
-  const completeGame = useMutation(api.game.completeGame);
+  const completeGame = useMutation(api.game.submitAnswer);
 
   // Get language from URL query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -158,6 +158,41 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     return () => clearTimeout(timeoutId);
   }, [gameState.gameStarted, gameState.gameOver, gameState.feedback.message, gameState.timeLeft]);
 
+  // Add navigation warning when user tries to leave during an active game
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (gameState.gameStarted && !gameState.gameOver) {
+        // Standard way to show a confirmation dialog when leaving the page
+        e.preventDefault();
+        e.returnValue = "You have an active game in progress. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [gameState.gameStarted, gameState.gameOver]);
+
+  // Handle navigation warning within the app
+  useEffect(() => {
+    const handleNavigation = () => {
+      if (gameState.gameStarted && !gameState.gameOver) {
+        setGameState((prev) => ({
+          ...prev,
+          showWarning: true,
+        }));
+        return false;
+      }
+      return true;
+    };
+
+    return () => {
+      // No cleanup needed since we're not using navigate for blocking
+    };
+  }, [gameState.gameStarted, gameState.gameOver]);
+
   // Handle confetti effect
   useEffect(() => {
     if (gameState.confettiActive) {
@@ -200,8 +235,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       // Save game results when game is over
       completeGame({
         gameId,
-        score: gameState.score,
-        userAnswers,
+        isValid: false,
       }).catch((error) => {
         console.error("Failed to save game results:", error);
       });
@@ -280,7 +314,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     }
 
     const currentSnippet = snippets[gameState.currentIndex];
-    const isCorrect = isHot === currentSnippet.isValid;
+    const isCorrect = isHot === (currentSnippet as any).isValid;
 
     // Store user's answer
     setUserAnswers((prev) => [...prev, isHot]);
@@ -384,6 +418,45 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     }
   };
 
+  const handleEndGame = () => {
+    setGameState((prev) => ({
+      ...prev,
+      showEndGameConfirm: true,
+    }));
+  };
+
+  const confirmEndGame = () => {
+    // Save the current game state before ending
+    if (gameId) {
+      completeGame({
+        gameId,
+        isValid: false,
+      }).catch((error) => {
+        console.error("Failed to save game results:", error);
+      });
+    }
+
+    setGameState((prev) => ({
+      ...prev,
+      gameOver: true,
+      showEndGameConfirm: false,
+    }));
+  };
+
+  const cancelEndGame = () => {
+    setGameState((prev) => ({
+      ...prev,
+      showEndGameConfirm: false,
+    }));
+  };
+
+  const closeWarning = () => {
+    setGameState((prev) => ({
+      ...prev,
+      showWarning: false,
+    }));
+  };
+
   if (!gameState.gameStarted) {
     return (
       <>
@@ -424,13 +497,12 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         isDarkMode={isDarkMode}
       />
       {snippets.length > gameState.currentIndex && (
-        <CodeDisplay
-          code={snippets[gameState.currentIndex].code}
-          language={gameState.language || "typescript"}
-          isDarkMode={isDarkMode}
-        />
+        <CodeDisplay code={snippets[gameState.currentIndex].code} isDarkMode={isDarkMode} />
       )}
-      <div className="flex justify-center space-x-4">
+      <div className="flex justify-center space-x-4 items-center">
+        <div className={`mr-4 font-medium ${isDarkMode ? "text-white" : "text-gray-800"}`}>
+          Score: {gameState.score}
+        </div>
         <button
           onClick={() => handleVote(true)}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
@@ -447,6 +519,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
           className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
           Skip
         </button>
+        <button
+          onClick={handleEndGame}
+          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+          End Game
+        </button>
       </div>
       {gameState.feedback.message && (
         <div
@@ -454,6 +531,61 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
             gameState.feedback.isCorrect ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
           }`}>
           {gameState.feedback.message}
+        </div>
+      )}
+
+      {/* End Game Confirmation Dialog */}
+      {gameState.showEndGameConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">End Game?</h3>
+            <p className="mb-6 text-gray-700 dark:text-gray-300">
+              Are you sure you want to end the current game? Your progress will be saved, but you
+              won't be able to continue.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelEndGame}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                Cancel
+              </button>
+              <button
+                onClick={confirmEndGame}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                End Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Warning Dialog */}
+      {gameState.showWarning && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              Game in Progress
+            </h3>
+            <p className="mb-6 text-gray-700 dark:text-gray-300">
+              You have an active game in progress. Are you sure you want to leave? Your progress
+              will be lost.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={closeWarning}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
+                Stay
+              </button>
+              <button
+                onClick={() => {
+                  closeWarning();
+                  navigate("/");
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                Leave Anyway
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -45,6 +45,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [editingSnippet, setEditingSnippet] = useState<any | null>(null);
+  const [showEditSnippet, setShowEditSnippet] = useState(false);
 
   // Log authentication state for debugging
   useEffect(() => {
@@ -63,6 +65,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const updateSettingsMutation = useMutation(api.settings.updateSettings);
     const createNewVolumeMutation = useMutation(api.settings.createNewVolume);
     const deleteSnippetMutation = useMutation(api.snippets.deleteSnippet);
+    const updateSnippetMutation = useMutation(api.snippets.updateSnippet);
 
     // Handle unauthorized access or loading state
     if (!user?.id || !settings || !snippets) {
@@ -189,6 +192,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       }
     };
 
+    const handleEditSnippet = (snippet: any) => {
+      setEditingSnippet(snippet);
+      setShowEditSnippet(true);
+    };
+
+    const handleUpdateSnippet = async () => {
+      try {
+        await updateSnippetMutation({
+          id: editingSnippet._id,
+          code: editingSnippet.code,
+          isValid: editingSnippet.isValid,
+          explanation: editingSnippet.explanation,
+          tags: editingSnippet.tags || [],
+          clerkId: user?.id,
+        });
+        setShowEditSnippet(false);
+        setEditingSnippet(null);
+      } catch (error) {
+        console.error("Error updating snippet:", error);
+      }
+    };
+
     const renderAddSnippetModal = () => (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div
@@ -310,6 +335,112 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         </div>
       </div>
     );
+
+    const renderEditSnippetModal = () => {
+      if (!editingSnippet) return null;
+
+      return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div
+            className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} p-6 rounded-lg max-w-3xl w-full mx-4`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl">Edit Snippet</h3>
+              <button
+                onClick={() => setShowEditSnippet(false)}
+                className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Language</label>
+                  <input
+                    type="text"
+                    value={
+                      LANGUAGES[editingSnippet.language as keyof typeof LANGUAGES] ||
+                      editingSnippet.language
+                    }
+                    disabled
+                    className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Difficulty</label>
+                  <input
+                    type="text"
+                    value={editingSnippet.difficulty}
+                    disabled
+                    className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Volume</label>
+                  <input
+                    type="text"
+                    value={editingSnippet.volume}
+                    disabled
+                    className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Code</label>
+                <textarea
+                  value={editingSnippet.code}
+                  onChange={(e) => setEditingSnippet({ ...editingSnippet, code: e.target.value })}
+                  className="w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono"
+                  placeholder="Enter code snippet here..."
+                  spellCheck="false"
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={editingSnippet.isValid}
+                    onChange={(e) =>
+                      setEditingSnippet({ ...editingSnippet, isValid: e.target.checked })
+                    }
+                    className="rounded bg-black/30"
+                  />
+                  <span className="text-sm text-gray-300">Valid Code</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Explanation</label>
+                <textarea
+                  value={editingSnippet.explanation}
+                  onChange={(e) =>
+                    setEditingSnippet({ ...editingSnippet, explanation: e.target.value })
+                  }
+                  className="w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  placeholder="Explain why this code is valid/invalid..."
+                />
+              </div>
+
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={() => setShowEditSnippet(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateSnippet}
+                  className="px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+                  Update Snippet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
 
     const renderSettings = () => (
       <div>
@@ -581,7 +712,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button className="p-2 text-gray-400 hover:text-white transition-colors">
+                  <button
+                    onClick={() => handleEditSnippet(snippet)}
+                    className="p-2 text-gray-400 hover:text-white transition-colors">
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
@@ -674,6 +807,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         </div>
 
         {showAddSnippet && renderAddSnippetModal()}
+        {showEditSnippet && renderEditSnippetModal()}
       </div>
     );
   };
