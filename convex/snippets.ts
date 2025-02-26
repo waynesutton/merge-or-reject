@@ -18,6 +18,7 @@ export const getAdminSnippets = query({
   returns: v.array(
     v.object({
       _id: v.id("codeSnippets"),
+      _creationTime: v.number(),
       language: v.string(),
       volume: v.number(),
       code: v.string(),
