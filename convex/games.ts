@@ -1,7 +1,75 @@
+/**
+ * Games Module
+ *
+ * Handles game creation and retrieval operations.
+ */
+
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { Language } from "../src/types";
 import { Id } from "./_generated/dataModel";
+
+export type Language = "javascript" | "typescript" | "python";
+
+/**
+ * Create a new game session
+ */
+export const createGame = mutation({
+  args: {
+    userId: v.id("users"),
+    language: v.string(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    level: v.number(),
+    volume: v.number(),
+  },
+  returns: v.id("games"),
+  handler: async (ctx, args) => {
+    const gameId = await ctx.db.insert("games", {
+      userId: args.userId,
+      language: args.language,
+      difficulty: args.difficulty,
+      level: args.level,
+      volume: args.volume,
+      score: 0,
+      snippetsCompleted: 0,
+      timestamp: new Date().toISOString(),
+      snippetsPlayed: [],
+      userAnswers: [],
+      createdAt: new Date().toISOString(),
+    });
+
+    return gameId;
+  },
+});
+
+/**
+ * Get all games for a user
+ */
+export const getUserGames = query({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("games"),
+      language: v.string(),
+      difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+      level: v.number(),
+      volume: v.number(),
+      score: v.number(),
+      snippetsCompleted: v.number(),
+      timestamp: v.string(),
+      snippetsPlayed: v.array(v.id("codeSnippets")),
+      userAnswers: v.array(v.boolean()),
+      createdAt: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("games")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+  },
+});
 
 /**
  * Save a completed game - public access
@@ -28,6 +96,9 @@ export const saveGame = mutation({
       timestamp: new Date().toISOString(),
       snippetsPlayed: args.snippetsPlayed,
       userAnswers: args.userAnswers,
+      difficulty: args.level === 1 ? "easy" : args.level === 2 ? "medium" : "hard",
+      snippetsCompleted: args.snippetsPlayed.length,
+      createdAt: new Date().toISOString(),
     });
 
     // Update user stats
@@ -72,7 +143,7 @@ export const getRecentGames = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("games")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(args.limit);
   },

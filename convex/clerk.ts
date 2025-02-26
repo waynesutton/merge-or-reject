@@ -88,7 +88,7 @@ export const clerkWebhook = internalAction({
         // Only sync admin users to the database
         if (isAdmin) {
           try {
-            await ctx.runMutation(internal.users.syncUser, {
+            await ctx.runMutation(internal.users._syncUser, {
               clerkId,
               email,
               name,
@@ -107,7 +107,7 @@ export const clerkWebhook = internalAction({
         // Admin users might need to be removed
         if (isAdmin) {
           try {
-            await ctx.runMutation(internal.users.deleteUser, { clerkId });
+            await ctx.runMutation(internal.users._deleteUser, { clerkId });
           } catch (error) {
             console.error("Failed to delete admin user:", error);
           }

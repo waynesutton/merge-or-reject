@@ -7,7 +7,7 @@
  * - User deletion with cascade cleanup
  */
 
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireAdmin } from "./auth";
@@ -77,7 +77,7 @@ export const getUser = query({
 /**
  * Create or update a user from Clerk webhook
  */
-export const syncUser = mutation({
+export const _syncUser = internalMutation({
   args: {
     clerkId: v.string(),
     email: v.string(),
@@ -166,9 +166,9 @@ export const updateUserName = mutation({
 });
 
 /**
- * Delete a user and all associated data - admin only
+ * Delete a user and all associated data
  */
-export const deleteUser = mutation({
+export const _deleteUser = internalMutation({
   args: {
     clerkId: v.string(),
   },
@@ -194,25 +194,34 @@ export const fixUserSchema = mutation({
   args: {},
   returns: v.object({
     updatedCount: v.number(),
+    users: v.array(v.any()),
   }),
   handler: async (ctx) => {
     // Find all users
     const users = await ctx.db.query("users").collect();
+    console.log("Found users:", JSON.stringify(users, null, 2));
     let updatedCount = 0;
 
-    // Update each user that's missing the role field
+    // Update each user that's missing required fields
     for (const user of users) {
       const userData = user as any; // Use any to bypass type checking
+      const updates: Record<string, any> = {};
+
       if (!("role" in userData)) {
-        await ctx.db.patch(userData._id, {
-          role: "user", // Default role
-        });
+        updates.role = "user";
+      }
+      if (!("createdAt" in userData)) {
+        updates.createdAt = new Date().toISOString();
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await ctx.db.patch(userData._id, updates);
         updatedCount++;
       }
     }
 
-    console.log(`Fixed ${updatedCount} users missing the role field`);
-    return { updatedCount };
+    console.log(`Fixed ${updatedCount} users missing required fields`);
+    return { updatedCount, users };
   },
 });
 
@@ -231,5 +240,17 @@ export const getUserRole = query({
       .first();
 
     return user?.role ?? null;
+  },
+});
+
+/**
+ * Internal query to check all users - no auth required
+ */
+export const _checkUsers = internalQuery({
+  args: {},
+  returns: v.array(v.any()),
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users;
   },
 });

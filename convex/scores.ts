@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Language } from "../src/types";
 import { Doc } from "./_generated/dataModel";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Get top scores across all games
@@ -122,7 +123,7 @@ export const getUserTopScores = query({
   handler: async (ctx, args) => {
     const games = await ctx.db
       .query("games")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(args.limit);
 
@@ -134,5 +135,35 @@ export const getUserTopScores = query({
       timestamp: game.timestamp,
       totalSnippets: game.snippetsPlayed.length,
     }));
+  },
+});
+
+/**
+ * Get user's game history
+ */
+export const getUserHistory = query({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("games"),
+      language: v.string(),
+      difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+      level: v.number(),
+      score: v.number(),
+      snippetsCompleted: v.number(),
+      timestamp: v.string(),
+      snippetsPlayed: v.array(v.id("codeSnippets")),
+      userAnswers: v.array(v.boolean()),
+      createdAt: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("games")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .collect();
   },
 });

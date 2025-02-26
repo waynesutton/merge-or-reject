@@ -53,6 +53,9 @@ export const startGame = mutation({
       timestamp: new Date().toISOString(),
       snippetsPlayed: snippets.map((s) => s._id),
       userAnswers: [],
+      difficulty: difficulty,
+      snippetsCompleted: 0,
+      createdAt: new Date().toISOString(),
     });
 
     return {
