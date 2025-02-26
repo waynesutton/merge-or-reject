@@ -57,13 +57,25 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
               Repo
             </h3>
             <div className="flex space-x-4">
-              <a
-                href="https://github.com/waynesutton/merge-or-reject"
-                className={`${isDarkMode ? "text-gray-400" : "text-gray-600"} hover:text-[#00FF94] transition-colors flex items-center space-x-2`}
-                aria-label="GitHub">
-                <Github className="w-5 h-5" />
-                <span>GitHub</span>
-              </a>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a
+                    href="https://github.com/waynesutton/merge-or-reject"
+                    className={`${isDarkMode ? "text-gray-400" : "text-gray-600"} hover:text-[#00FF94] transition-colors flex items-center space-x-2`}
+                    aria-label="GitHub">
+                    <Github className="w-5 h-5" />
+                    <span>GitHub</span>
+                  </a>
+                </li>
+
+                <li>
+                  <a
+                    href="https://discord.gg/XcRXcWPJGG"
+                    className={`${isDarkMode ? "text-gray-400" : "text-gray-600"} hover:text-[#00FF94] transition-colors`}>
+                    Support
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

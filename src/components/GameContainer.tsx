@@ -18,7 +18,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import confetti from "canvas-confetti";
 import { PowerGlitch } from "powerglitch";
-import { Level, Language, LEVEL_TIMES, LEVEL_ROUNDS } from "../types";
+import { Level, Language, LEVEL_TIMES, LEVEL_ROUNDS, LANGUAGES } from "../types";
 import CodeDisplay from "./CodeDisplay";
 import LevelSelector from "./LevelSelector";
 import Timer from "./Timer";
@@ -486,6 +486,13 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   return (
     <div className="space-y-8">
       <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+      {gameState.language && (
+        <h2
+          className={`text-center text-2xl font-normal ${isDarkMode ? "text-white" : "text-gray-800"}`}>
+          {LANGUAGES[gameState.language] || gameState.language} -{" "}
+          {gameState.level === 1 ? "Easy" : gameState.level === 2 ? "Medium" : "Hard"}
+        </h2>
+      )}
       <Timer
         timeLeft={gameState.timeLeft}
         total={timeLimit > 0 ? timeLimit : LEVEL_TIMES[gameState.level]}

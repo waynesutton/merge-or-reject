@@ -47,8 +47,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [editingSnippet, setEditingSnippet] = useState<any | null>(null);
   const [showEditSnippet, setShowEditSnippet] = useState(false);
-
-  // State for editing language volumes
   const [editingVolume, setEditingVolume] = useState<string | null>(null);
   const [volumeEditValue, setVolumeEditValue] = useState<number>(1);
 
@@ -238,7 +236,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const renderAddSnippetModal = () => (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div
-          className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} p-6 rounded-lg max-w-3xl w-full mx-4`}>
+          className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} p-6 rounded-lg max-w-3xl w-full mx-4`}
+          onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl">Add New Snippet</h3>
             <button
@@ -306,10 +305,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <label className="block text-sm text-gray-400 mb-1">Code</label>
               <textarea
                 value={newSnippet.code}
-                onInput={(e) =>
+                onChange={(e) =>
                   setNewSnippet((prev) => ({
                     ...prev,
-                    code: (e.target as HTMLTextAreaElement).value,
+                    code: e.target.value,
                   }))
                 }
                 className="w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono"
@@ -374,7 +373,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div
-            className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} p-6 rounded-lg max-w-3xl w-full mx-4`}>
+            className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} p-6 rounded-lg max-w-3xl w-full mx-4`}
+            onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl">Edit Snippet</h3>
               <button
@@ -592,14 +592,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 const languageName =
                   LANGUAGES[volume.language as keyof typeof LANGUAGES] ||
                   volume.language.charAt(0).toUpperCase() + volume.language.slice(1);
-                const isEditing = editingVolume === volume.language;
 
                 return (
                   <div key={volume.language} className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-[#00FF94]">{languageName}</h4>
                       <div className="flex space-x-2">
-                        {isEditing ? (
+                        {editingVolume === volume.language ? (
                           <>
                             <button
                               onClick={() => setEditingVolume(null)}
@@ -635,7 +634,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                       </div>
                     </div>
 
-                    <div className={`${isEditing ? "bg-black/40" : "bg-black/20"} p-4 rounded-lg`}>
+                    <div
+                      className={`${editingVolume === volume.language ? "bg-black/40" : "bg-black/20"} p-4 rounded-lg`}>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                         <div>
                           <span className="text-sm text-gray-400">Total Snippets</span>
@@ -649,7 +649,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                         </div>
                         <div>
                           <span className="text-sm text-gray-400">Current Volume</span>
-                          {isEditing ? (
+                          {editingVolume === volume.language ? (
                             <input
                               type="number"
                               min="1"
