@@ -84,6 +84,133 @@ export const getDashboardStats = query({
 });
 
 /**
+ * Get analytics data for admin dashboard - admin only
+ */
+export const getAnalytics = query({
+  args: {
+    clerkId: v.string(),
+  },
+  returns: v.object({
+    totalUsers: v.number(),
+    totalGames: v.number(),
+    difficultySummary: v.array(
+      v.object({
+        difficulty: v.string(),
+        count: v.number(),
+        averageScore: v.number(),
+      })
+    ),
+    volumeSummary: v.array(
+      v.object({
+        volume: v.number(),
+        count: v.number(),
+        averageScore: v.number(),
+      })
+    ),
+    levelSummary: v.array(
+      v.object({
+        level: v.number(),
+        count: v.number(),
+        averageScore: v.number(),
+      })
+    ),
+    languageVolumes: v.array(
+      v.object({
+        language: v.string(),
+        volumeCount: v.number(),
+        snippetCount: v.number(),
+      })
+    ),
+  }),
+  handler: async (ctx, args) => {
+    try {
+      // Verify admin access
+      await requireAdmin(ctx, args.clerkId);
+      console.log(`Admin verified for analytics: ${args.clerkId}`);
+
+      // Get total users
+      const users = await ctx.db.query("users").collect();
+      const totalUsers = users.length;
+
+      // Get all games
+      const games = await ctx.db.query("games").collect();
+      const totalGames = games.length;
+
+      // Initialize data structures for different summaries
+      const difficultyMap = new Map<string, { count: number; totalScore: number }>();
+      const volumeMap = new Map<number, { count: number; totalScore: number }>();
+      const levelMap = new Map<number, { count: number; totalScore: number }>();
+
+      // Process games data
+      for (const game of games) {
+        // Process difficulty data
+        const diffStats = difficultyMap.get(game.difficulty) || { count: 0, totalScore: 0 };
+        diffStats.count++;
+        diffStats.totalScore += game.score;
+        difficultyMap.set(game.difficulty, diffStats);
+
+        // Process volume data
+        const volumeStats = volumeMap.get(game.volume) || { count: 0, totalScore: 0 };
+        volumeStats.count++;
+        volumeStats.totalScore += game.score;
+        volumeMap.set(game.volume, volumeStats);
+
+        // Process level data
+        const levelStats = levelMap.get(game.level) || { count: 0, totalScore: 0 };
+        levelStats.count++;
+        levelStats.totalScore += game.score;
+        levelMap.set(game.level, levelStats);
+      }
+
+      // Get language volumes data
+      const languageVolumesData = await ctx.db.query("languageVolumes").collect();
+
+      // Format difficulty summary
+      const difficultySummary = Array.from(difficultyMap.entries()).map(([difficulty, stats]) => ({
+        difficulty,
+        count: stats.count,
+        averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
+      }));
+
+      // Format volume summary
+      const volumeSummary = Array.from(volumeMap.entries()).map(([volume, stats]) => ({
+        volume,
+        count: stats.count,
+        averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
+      }));
+
+      // Format level summary
+      const levelSummary = Array.from(levelMap.entries()).map(([level, stats]) => ({
+        level,
+        count: stats.count,
+        averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
+      }));
+
+      // Format language volumes
+      const languageVolumes = languageVolumesData.map((volume) => ({
+        language: volume.language,
+        volumeCount: volume.currentVolume,
+        snippetCount: volume.snippetCount,
+      }));
+
+      console.log(`Analytics data retrieved successfully for ${args.clerkId}`);
+
+      return {
+        totalUsers,
+        totalGames,
+        difficultySummary,
+        volumeSummary,
+        levelSummary,
+        languageVolumes,
+      };
+    } catch (error) {
+      console.error("Error getting analytics data:", error);
+      throw error;
+    }
+  },
+});
+
+/**
  * Get code snippets stats - admin only
  */
 export const getSnippetsStats = query({

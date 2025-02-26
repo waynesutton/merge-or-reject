@@ -31,7 +31,7 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeToggle }) => {
   const navigate = useNavigate();
   const { user, isSignedIn, isLoaded } = useUser();
-  const [activeTab, setActiveTab] = useState<"snippets" | "settings">("snippets");
+  const [activeTab, setActiveTab] = useState<"snippets" | "settings" | "analytics">("snippets");
   const [expandedSnippet, setExpandedSnippet] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("typescript");
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>("easy");
@@ -58,8 +58,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const snippets = useQuery(api.snippets.getAdminSnippets, {
       language: selectedLanguage,
       difficulty: selectedDifficulty,
-      clerkId: user?.id,
+      clerkId: user?.id || "",
     } as any);
+    const analytics = useQuery(api.admin.getAnalytics, {
+      clerkId: user?.id || "",
+    });
     const addSnippetMutation = useMutation(api.snippets.addSnippet);
     const generateMoreSnippetsMutation = useMutation(api.snippets.generateMoreSnippets);
     const updateSettingsMutation = useMutation(api.settings.updateSettings);
@@ -788,6 +791,156 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       </div>
     );
 
+    const renderAnalytics = () => {
+      if (!analytics) {
+        return (
+          <div className="flex items-center justify-center p-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00FF94]"></div>
+          </div>
+        );
+      }
+
+      const {
+        totalUsers,
+        totalGames,
+        difficultySummary,
+        volumeSummary,
+        levelSummary,
+        languageVolumes,
+      } = analytics;
+
+      // Helper function to format numbers
+      const formatNumber = (num: number) => {
+        return num % 1 === 0 ? num.toString() : num.toFixed(2);
+      };
+
+      return (
+        <div className="space-y-8">
+          {/* Overview Stats */}
+          <div>
+            <h3 className="text-lg mb-4">Overview</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bg-black/30 p-6 rounded-lg">
+                <h4 className="text-gray-400 text-sm mb-2">Total Users</h4>
+                <p className="text-3xl text-[#00FF94] font-bold">{totalUsers}</p>
+              </div>
+              <div className="bg-black/30 p-6 rounded-lg">
+                <h4 className="text-gray-400 text-sm mb-2">Total Games</h4>
+                <p className="text-3xl text-[#00FF94] font-bold">{totalGames}</p>
+              </div>
+              <div className="bg-black/30 p-6 rounded-lg">
+                <h4 className="text-gray-400 text-sm mb-2">Language Volumes</h4>
+                <p className="text-3xl text-[#00FF94] font-bold">{languageVolumes.length}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Difficulty Stats */}
+          <div>
+            <h3 className="text-lg mb-4">Difficulty Summary</h3>
+            <div className="bg-black/20 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-black/40">
+                    <th className="text-left p-4 text-gray-300">Difficulty</th>
+                    <th className="text-left p-4 text-gray-300">Games Played</th>
+                    <th className="text-left p-4 text-gray-300">Average Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {difficultySummary.map((item, index) => (
+                    <tr key={index} className="border-t border-gray-800">
+                      <td className="p-4 capitalize">{item.difficulty}</td>
+                      <td className="p-4">{item.count}</td>
+                      <td className="p-4">{formatNumber(item.averageScore)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Volume Stats */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Volume Summary */}
+            <div>
+              <h3 className="text-lg mb-4">Volume Summary</h3>
+              <div className="bg-black/20 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-black/40">
+                      <th className="text-left p-4 text-gray-300">Volume</th>
+                      <th className="text-left p-4 text-gray-300">Games Played</th>
+                      <th className="text-left p-4 text-gray-300">Average Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {volumeSummary.map((item, index) => (
+                      <tr key={index} className="border-t border-gray-800">
+                        <td className="p-4">{item.volume}</td>
+                        <td className="p-4">{item.count}</td>
+                        <td className="p-4">{formatNumber(item.averageScore)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Level Summary */}
+            <div>
+              <h3 className="text-lg mb-4">Level Summary</h3>
+              <div className="bg-black/20 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-black/40">
+                      <th className="text-left p-4 text-gray-300">Level</th>
+                      <th className="text-left p-4 text-gray-300">Games Played</th>
+                      <th className="text-left p-4 text-gray-300">Average Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {levelSummary.map((item, index) => (
+                      <tr key={index} className="border-t border-gray-800">
+                        <td className="p-4">{item.level}</td>
+                        <td className="p-4">{item.count}</td>
+                        <td className="p-4">{formatNumber(item.averageScore)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Language Volumes */}
+          <div>
+            <h3 className="text-lg mb-4">Language Volumes</h3>
+            <div className="bg-black/20 rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-black/40">
+                    <th className="text-left p-4 text-gray-300">Language</th>
+                    <th className="text-left p-4 text-gray-300">Current Volume</th>
+                    <th className="text-left p-4 text-gray-300">Total Snippets</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {languageVolumes.map((item, index) => (
+                    <tr key={index} className="border-t border-gray-800">
+                      <td className="p-4 capitalize">{item.language}</td>
+                      <td className="p-4">{item.volumeCount}</td>
+                      <td className="p-4">{item.snippetCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     return (
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
@@ -813,6 +966,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
             <span>Snippets</span>
           </button>
           <button
+            onClick={() => setActiveTab("analytics")}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              activeTab === "analytics"
+                ? "bg-[#EE342F] text-black"
+                : "text-gray-400 hover:text-white"
+            }`}>
+            <Sparkles className="w-4 h-4" />
+            <span>Analytics</span>
+          </button>
+          <button
             onClick={() => setActiveTab("settings")}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
               activeTab === "settings"
@@ -826,6 +989,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
         <div className="bg-[#1A1A1A] p-6 rounded-lg">
           {activeTab === "snippets" && renderCodeSnippets()}
+          {activeTab === "analytics" && renderAnalytics()}
           {activeTab === "settings" && renderSettings()}
         </div>
 
