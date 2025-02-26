@@ -7,7 +7,10 @@ Merge or Reject is an open source game where developers test their code review s
 ## ✅ To-Do List
 
 - [ ] Add AI features
+- [ ] confirm gameplay.md is correct
 - [ ] Add Jamal to admin role in Clerk
+- [ ] fix add and edit snippets input box
+- [ ] add current program language to show at the top of the current game
 - [ ] Test algorithms for merge and reject
 - [ ] Add more snippets for programming languages
 - [ ] Change the cat to a GIF or video of gameplay
