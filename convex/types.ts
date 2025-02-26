@@ -13,17 +13,13 @@ export type Difficulty = "easy" | "medium" | "hard";
 export type Language = "typescript" | "javascript" | "python" | "rust" | "go" | "sql";
 
 export interface UserDoc extends Doc<"users"> {
-  firstName: string;
-  username: string;
-  profileUrl: string;
-  isPrivate: boolean;
-  joinedDate: string;
+  name: string;
+  isAnonymous: boolean;
   totalGames: number;
   averageScore: number;
-  earnedBadges: string[];
   role: UserRole;
-  email: string;
-  clerkId: string;
+  clerkId?: string;
+  email?: string;
 }
 
 export interface GameDoc extends Doc<"games"> {
@@ -73,7 +69,4 @@ export type GetUserByClerkId = (
   clerkId: string
 ) => Promise<UserDoc | null>;
 
-export type RequireAdmin = (
-  ctx: { db: DatabaseReader },
-  clerkId: string
-) => Promise<UserDoc>;
+export type RequireAdmin = (ctx: { db: DatabaseReader }, clerkId: string) => Promise<UserDoc>;

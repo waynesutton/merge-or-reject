@@ -12,6 +12,9 @@ import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireAuth, requireAdmin } from "./auth";
 
+// Type for user document
+type UserDoc = Doc<"users">;
+
 /**
  * Get all users - admin only
  */
@@ -33,7 +36,16 @@ export const getUsers = query({
   handler: async (ctx, args) => {
     // Verify admin access
     await requireAdmin(ctx, args.clerkId);
-    return await ctx.db.query("users").collect();
+    const users = await ctx.db.query("users").collect();
+    return users.map((user) => ({
+      _id: user._id,
+      name: user.name,
+      isAnonymous: user.isAnonymous,
+      totalGames: user.totalGames,
+      averageScore: user.averageScore,
+      role: user.role,
+      email: user.email,
+    }));
   },
 });
 
@@ -70,25 +82,24 @@ export const syncUser = mutation({
     clerkId: v.string(),
     email: v.string(),
     name: v.string(),
+    role: v.union(v.literal("admin"), v.literal("user")),
   },
-  returns: v.object({
-    userId: v.id("users"),
-    isNewUser: v.boolean(),
-  }),
+  returns: v.string(),
   handler: async (ctx, args) => {
     // Check if user exists
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
-      .unique();
+      .filter((q) => q.eq(q.field("clerkId"), args.clerkId))
+      .first();
 
     if (existingUser) {
       // Update existing user
       await ctx.db.patch(existingUser._id, {
         email: args.email,
         name: args.name,
+        role: args.role,
       });
-      return { userId: existingUser._id, isNewUser: false };
+      return existingUser._id;
     }
 
     // Create new user
@@ -96,13 +107,14 @@ export const syncUser = mutation({
       clerkId: args.clerkId,
       email: args.email,
       name: args.name,
+      role: args.role,
       isAnonymous: false,
       totalGames: 0,
       averageScore: 0,
-      role: "user", // Default role
+      createdAt: new Date().toISOString(),
     });
 
-    return { userId, isNewUser: true };
+    return userId;
   },
 });
 
@@ -110,21 +122,19 @@ export const syncUser = mutation({
  * Create an anonymous user - public access
  */
 export const createAnonymousUser = mutation({
-  args: {},
-  returns: v.object({
-    userId: v.id("users"),
+  args: {
     name: v.string(),
-  }),
-  handler: async (ctx) => {
-    const defaultName = `Player ${Math.floor(Math.random() * 1000)}`;
-    const userId = await ctx.db.insert("users", {
-      name: defaultName,
+  },
+  returns: v.id("users"),
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("users", {
+      name: args.name,
+      role: "user",
       isAnonymous: true,
       totalGames: 0,
       averageScore: 0,
-      role: "user",
+      createdAt: new Date().toISOString(),
     });
-    return { userId, name: defaultName };
   },
 });
 
@@ -160,36 +170,66 @@ export const updateUserName = mutation({
  */
 export const deleteUser = mutation({
   args: {
-    userId: v.id("users"),
     clerkId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Verify admin access
-    await requireAdmin(ctx, args.clerkId);
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("clerkId"), args.clerkId))
+      .first();
 
-    // Delete user's games
-    const games = await ctx.db
-      .query("games")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    for (const game of games) {
-      await ctx.db.delete(game._id);
+    if (user) {
+      await ctx.db.delete(user._id);
     }
-
-    // Delete user's stats
-    const stats = await ctx.db
-      .query("userStats")
-      .withIndex("by_userId_language", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    for (const stat of stats) {
-      await ctx.db.delete(stat._id);
-    }
-
-    // Finally, delete the user
-    await ctx.db.delete(args.userId);
     return null;
+  },
+});
+
+/**
+ * Fix user schema by adding missing required fields - public access
+ * This is a utility function to fix schema validation issues
+ */
+export const fixUserSchema = mutation({
+  args: {},
+  returns: v.object({
+    updatedCount: v.number(),
+  }),
+  handler: async (ctx) => {
+    // Find all users
+    const users = await ctx.db.query("users").collect();
+    let updatedCount = 0;
+
+    // Update each user that's missing the role field
+    for (const user of users) {
+      const userData = user as any; // Use any to bypass type checking
+      if (!("role" in userData)) {
+        await ctx.db.patch(userData._id, {
+          role: "user", // Default role
+        });
+        updatedCount++;
+      }
+    }
+
+    console.log(`Fixed ${updatedCount} users missing the role field`);
+    return { updatedCount };
+  },
+});
+
+/**
+ * Get user's role by Clerk ID
+ */
+export const getUserRole = query({
+  args: {
+    clerkId: v.string(),
+  },
+  returns: v.union(v.literal("admin"), v.literal("user"), v.null()),
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("clerkId"), args.clerkId))
+      .first();
+
+    return user?.role ?? null;
   },
 });

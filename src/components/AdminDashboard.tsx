@@ -1,7 +1,22 @@
+/**
+ * AdminDashboard.tsx
+ *
+ * Admin dashboard component that provides management interface for the application.
+ *
+ * Changes made:
+ * - Added proper authentication handling with Clerk
+ * - Added admin role verification
+ * - Fixed type errors in API calls
+ * - Added loading states for authentication
+ * - Improved error handling for unauthorized access
+ * - Added logout functionality
+ * - Fixed user role checking with Clerk integration
+ */
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, SignedOut, RedirectToSignIn, useClerk } from "@clerk/clerk-react";
 import { api } from "../../convex/_generated/api";
 import {
   ArrowLeft,
@@ -19,14 +34,20 @@ import {
   Bot,
 } from "lucide-react";
 import { LANGUAGES, LEVEL_TIMES, Language, Difficulty } from "../types";
+import Header from "./Header";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { Id } from "../../convex/_generated/dataModel";
 
 interface AdminDashboardProps {
   isDarkMode: boolean;
+  onThemeToggle: () => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeToggle }) => {
   const navigate = useNavigate();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState<"snippets" | "settings">("snippets");
   const [expandedSnippet, setExpandedSnippet] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("typescript");
@@ -42,19 +63,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
-  // Redirect if not signed in
-  React.useEffect(() => {
-    if (!isSignedIn) {
-      navigate("/");
-    }
-  }, [isSignedIn, navigate]);
+  // Check if user is admin
+  const userRole = useQuery(api.users.getUserRole, {
+    clerkId: user?.id ?? "",
+  });
+
+  // Show loading state while checking authentication
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl mb-4">Loading...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to sign in if not authenticated
+  if (!isSignedIn) {
+    return <RedirectToSignIn />;
+  }
+
+  // Show error if not admin
+  if (userRole !== "admin") {
+    return (
+      <>
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} clerk={{ signOut, user }} />
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl mb-4">Access Denied</h1>
+            <p className="text-gray-400 mb-8">You do not have administrator privileges.</p>
+            <button
+              onClick={() => navigate("/")}
+              className="px-6 py-3 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+              Return Home
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const AdminContent = () => {
-    const settings = useQuery(api.settings.getSettings, { clerkId: user?.id });
+    const settings = useQuery(api.settings.getSettings);
     const snippets = useQuery(api.snippets.getAdminSnippets, {
       language: selectedLanguage,
       difficulty: selectedDifficulty,
-      clerkId: user?.id,
     });
     const addSnippetMutation = useMutation(api.snippets.addSnippet);
     const generateMoreSnippetsMutation = useMutation(api.snippets.generateMoreSnippets);
@@ -62,18 +116,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode }) => {
     const createNewVolumeMutation = useMutation(api.settings.createNewVolume);
     const deleteSnippetMutation = useMutation(api.snippets.deleteSnippet);
 
-    // Handle unauthorized access or loading state
-    if (!user?.id || !settings || !snippets) {
+    // Handle loading state
+    if (!settings || !snippets) {
       return (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <h1 className="text-2xl mb-4">Access Denied</h1>
-            <p className="text-gray-400 mb-8">You do not have permission to access this page.</p>
-            <button
-              onClick={() => navigate("/")}
-              className="px-6 py-3 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
-              Return Home
-            </button>
+            <h1 className="text-2xl mb-4">Loading...</h1>
           </div>
         </div>
       );
@@ -161,8 +209,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode }) => {
           difficulty: selectedDifficulty,
           volume,
         });
-      } catch (error) {
-        setGenerationError(error.message);
+      } catch (error: any) {
+        setGenerationError(error?.message || "An error occurred while generating snippets");
       } finally {
         setIsGenerating(false);
       }
@@ -170,9 +218,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode }) => {
 
     const handleDeleteSnippet = async (snippetId: string) => {
       try {
-        await deleteSnippetMutation({ id: snippetId });
+        await deleteSnippetMutation({ id: snippetId as Id<"codeSnippets"> });
+        toast.success("Snippet deleted successfully");
       } catch (error) {
-        console.error("Error deleting snippet:", error);
+        toast.error("Failed to delete snippet");
       }
     };
 
@@ -657,7 +706,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode }) => {
     );
   };
 
-  return <AdminContent />;
+  return (
+    <>
+      <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} clerk={{ signOut, user }} />
+      <AdminContent />
+    </>
+  );
 };
 
 export default AdminDashboard;

@@ -1,19 +1,33 @@
+/**
+ * GameContainer.tsx
+ *
+ * Main game component that handles game state, user interaction, and displays the game UI.
+ *
+ * Changes made:
+ * - Added Header component to game screens
+ * - Fixed user creation to only happen when a game starts
+ * - Improved timer handling to use admin-configured time limits
+ * - Added proper navigation between game states
+ * - Fixed anonymous user creation and game start flow (2024-02-26)
+ */
+
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import confetti from "canvas-confetti";
 import { PowerGlitch } from "powerglitch";
 import { Level, Language, LEVEL_TIMES, LEVEL_ROUNDS } from "../types";
-import { mockCodeSnippets } from "../data/mockData";
 import CodeDisplay from "./CodeDisplay";
 import LevelSelector from "./LevelSelector";
 import Timer from "./Timer";
 import GameResult from "./GameResult";
+import Header from "./Header";
 
 interface GameContainerProps {
   isDarkMode: boolean;
+  onThemeToggle: () => void;
 }
 
 interface GameState {
@@ -34,13 +48,20 @@ interface GameState {
   showPartyEmoji: boolean;
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
+const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [playerName, setPlayerName] = useState("Player 1");
   const [userId, setUserId] = useState<Id<"users"> | null>(null);
   const createAnonymousUser = useMutation(api.users.createAnonymousUser);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
   const glitchInstanceRef = useRef<any>(null);
+  const startGame = useMutation(api.game.startGame);
+  const completeGame = useMutation(api.game.completeGame);
+
+  // Get language from URL query parameters
+  const queryParams = new URLSearchParams(location.search);
+  const languageParam = queryParams.get("language") as Language | null;
 
   const [gameState, setGameState] = useState<GameState>({
     currentIndex: 0,
@@ -48,7 +69,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
     gameOver: false,
     gameStarted: false,
     level: 1,
-    language: null,
+    language: languageParam,
     timeLeft: LEVEL_TIMES[1],
     feedback: {
       message: "",
@@ -60,21 +81,27 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
     showPartyEmoji: false,
   });
 
-  // Initialize anonymous user when component mounts
+  // Add state for game snippets
+  const [gameId, setGameId] = useState<Id<"games"> | null>(null);
+  const [snippets, setSnippets] = useState<
+    Array<{
+      _id: Id<"codeSnippets">;
+      code: string;
+      language: string;
+    }>
+  >([]);
+  const [timeLimit, setTimeLimit] = useState<number>(0);
+  const [userAnswers, setUserAnswers] = useState<boolean[]>([]);
+
+  // If language is provided in URL, prepare for level selection
   useEffect(() => {
-    const initUser = async () => {
-      if (!userId) {
-        try {
-          const result = await createAnonymousUser();
-          setUserId(result.userId);
-          setPlayerName(result.name);
-        } catch (error) {
-          console.error("Failed to create anonymous user:", error);
-        }
-      }
-    };
-    initUser();
-  }, [createAnonymousUser, userId]);
+    if (languageParam && !gameState.gameStarted && userId) {
+      setGameState((prev) => ({
+        ...prev,
+        language: languageParam,
+      }));
+    }
+  }, [languageParam, userId, gameState.gameStarted]);
 
   // Setup glitch effect
   useEffect(() => {
@@ -168,14 +195,28 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
     }
   }, [gameState.confettiActive]);
 
+  useEffect(() => {
+    if (gameState.gameOver && gameId) {
+      // Save game results when game is over
+      completeGame({
+        gameId,
+        score: gameState.score,
+        userAnswers,
+      }).catch((error) => {
+        console.error("Failed to save game results:", error);
+      });
+    }
+  }, [gameState.gameOver, gameId, gameState.score, userAnswers, completeGame]);
+
   const resetGameState = () => {
+    // Reset game state
     setGameState({
       currentIndex: 0,
       score: 0,
       gameOver: false,
       gameStarted: false,
       level: 1,
-      language: null,
+      language: languageParam, // Keep the language from URL
       timeLeft: LEVEL_TIMES[1],
       feedback: {
         message: "",
@@ -186,6 +227,12 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
       showEndGameConfirm: false,
       showPartyEmoji: false,
     });
+
+    // Reset game data
+    setGameId(null);
+    setSnippets([]);
+    setTimeLimit(0);
+    setUserAnswers([]);
   };
 
   const handleTimeout = () => {
@@ -197,14 +244,20 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
       },
     }));
 
+    // Store user's answer as false (rejected) when timeout occurs
+    setUserAnswers((prev) => [...prev, false]);
+
     setTimeout(() => {
-      if (gameState.currentIndex === LEVEL_ROUNDS[gameState.level] - 1) {
+      if (
+        gameState.currentIndex ===
+        (snippets.length > 0 ? snippets.length - 1 : LEVEL_ROUNDS[gameState.level] - 1)
+      ) {
         setGameState((prev) => ({ ...prev, gameOver: true }));
       } else {
         setGameState((prev) => ({
           ...prev,
           currentIndex: prev.currentIndex + 1,
-          timeLeft: LEVEL_TIMES[prev.level],
+          timeLeft: timeLimit > 0 ? timeLimit : LEVEL_TIMES[prev.level],
           feedback: { message: "", isCorrect: null },
         }));
       }
@@ -221,8 +274,16 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
       }, 1000);
     }
 
-    const currentSnippet = mockCodeSnippets[gameState.currentIndex % mockCodeSnippets.length];
+    if (snippets.length <= gameState.currentIndex) {
+      console.error("No snippet available for current index");
+      return;
+    }
+
+    const currentSnippet = snippets[gameState.currentIndex];
     const isCorrect = isHot === currentSnippet.isValid;
+
+    // Store user's answer
+    setUserAnswers((prev) => [...prev, isHot]);
 
     setGameState((prev) => ({
       ...prev,
@@ -237,17 +298,22 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
     }));
 
     setTimeout(() => {
-      if (gameState.currentIndex === LEVEL_ROUNDS[gameState.level] - 1) {
+      if (
+        gameState.currentIndex ===
+        (snippets.length > 0 ? snippets.length - 1 : LEVEL_ROUNDS[gameState.level] - 1)
+      ) {
         setGameState((prev) => ({
           ...prev,
           gameOver: true,
-          confettiActive: prev.score + (isCorrect ? 1 : 0) === LEVEL_ROUNDS[prev.level],
+          confettiActive:
+            prev.score + (isCorrect ? 1 : 0) ===
+            (snippets.length > 0 ? snippets.length : LEVEL_ROUNDS[prev.level]),
         }));
       } else {
         setGameState((prev) => ({
           ...prev,
           currentIndex: prev.currentIndex + 1,
-          timeLeft: LEVEL_TIMES[prev.level],
+          timeLeft: timeLimit > 0 ? timeLimit : LEVEL_TIMES[prev.level],
           feedback: { message: "", isCorrect: null },
           showPartyEmoji: false,
         }));
@@ -256,54 +322,114 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
   };
 
   const handleSkip = () => {
-    if (gameState.currentIndex === LEVEL_ROUNDS[gameState.level] - 1) {
+    // Store user's answer as null (skipped) when skipping
+    setUserAnswers((prev) => [...prev, false]); // Treating skip as "reject" for simplicity
+
+    if (
+      gameState.currentIndex ===
+      (snippets.length > 0 ? snippets.length - 1 : LEVEL_ROUNDS[gameState.level] - 1)
+    ) {
       setGameState((prev) => ({ ...prev, gameOver: true }));
     } else {
       setGameState((prev) => ({
         ...prev,
         currentIndex: prev.currentIndex + 1,
-        timeLeft: LEVEL_TIMES[prev.level],
+        timeLeft: timeLimit > 0 ? timeLimit : LEVEL_TIMES[prev.level],
         feedback: { message: "", isCorrect: null },
       }));
     }
   };
 
-  const handleLevelSelect = (selectedLevel: Level) => {
-    setGameState((prev) => ({
-      ...prev,
-      level: selectedLevel,
-      timeLeft: LEVEL_TIMES[selectedLevel],
-      gameStarted: true,
-    }));
+  const handleLevelSelect = async (selectedLevel: Level) => {
+    if (!gameState.language) {
+      console.error("Missing language");
+      return;
+    }
+
+    try {
+      // Create anonymous user first if needed
+      let currentUserId = userId;
+      if (!currentUserId) {
+        const result = await createAnonymousUser();
+        currentUserId = result.userId;
+        setUserId(result.userId);
+        setPlayerName(result.name);
+      }
+
+      // Start game with the confirmed userId
+      const gameResult = await startGame({
+        userId: currentUserId,
+        language: gameState.language,
+        level: selectedLevel,
+        volume: 1, // Default to volume 1 for now
+      });
+
+      // Store game data and use the timeLimit configured in admin settings
+      setGameId(gameResult.gameId);
+      setSnippets(gameResult.snippets);
+      setTimeLimit(gameResult.timeLimit);
+
+      setGameState((prev) => ({
+        ...prev,
+        level: selectedLevel,
+        timeLeft: gameResult.timeLimit, // Use server-provided time limit
+        gameStarted: true,
+      }));
+    } catch (error) {
+      console.error("Failed to start game:", error);
+      // Show error to user
+      alert("Failed to start game. Please try again.");
+      // Reset game state
+      resetGameState();
+    }
   };
 
   if (!gameState.gameStarted) {
-    return <LevelSelector onSelect={handleLevelSelect} isDarkMode={isDarkMode} />;
+    return (
+      <>
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <LevelSelector
+          onSelect={handleLevelSelect}
+          onBack={() => navigate("/")}
+          isDarkMode={isDarkMode}
+        />
+      </>
+    );
   }
 
   if (gameState.gameOver) {
     return (
-      <GameResult
-        score={gameState.score}
-        total={LEVEL_ROUNDS[gameState.level]}
-        onPlayAgain={resetGameState}
-        isDarkMode={isDarkMode}
-      />
+      <>
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <GameResult
+          score={gameState.score}
+          language={gameState.language || "typescript"}
+          level={gameState.level}
+          volume={1}
+          onPlayAgain={resetGameState}
+          isDarkMode={isDarkMode}
+          userId={userId || ("" as Id<"users">)}
+          playerName={playerName}
+        />
+      </>
     );
   }
 
   return (
     <div className="space-y-8">
+      <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
       <Timer
         timeLeft={gameState.timeLeft}
-        total={LEVEL_TIMES[gameState.level]}
+        total={timeLimit > 0 ? timeLimit : LEVEL_TIMES[gameState.level]}
         isDarkMode={isDarkMode}
       />
-      <CodeDisplay
-        code={mockCodeSnippets[gameState.currentIndex % mockCodeSnippets.length].code}
-        language={gameState.language || "typescript"}
-        isDarkMode={isDarkMode}
-      />
+      {snippets.length > gameState.currentIndex && (
+        <CodeDisplay
+          code={snippets[gameState.currentIndex].code}
+          language={gameState.language || "typescript"}
+          isDarkMode={isDarkMode}
+        />
+      )}
       <div className="flex justify-center space-x-4">
         <button
           onClick={() => handleVote(true)}

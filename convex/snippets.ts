@@ -298,3 +298,33 @@ export const createSnippet = mutation({
     return await ctx.db.insert("codeSnippets", snippet);
   },
 });
+
+/**
+ * Generate more code snippets using AI - public access
+ */
+export const generateMoreSnippets = mutation({
+  args: {
+    language: v.string(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    volume: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Get AI generation settings
+    const settings = await ctx.db.query("gameSettings").first();
+    if (!settings?.aiGeneration.enabled) {
+      throw new Error("AI generation is disabled");
+    }
+
+    // Schedule AI snippet generation
+    await ctx.scheduler.runAfter(0, internal.snippets._generateAndSaveAISnippets, {
+      language: args.language,
+      difficulty: args.difficulty,
+      volume: args.volume,
+      count: settings.aiGeneration.maxPerRequest,
+      validRatio: settings.aiGeneration.validRatio,
+    });
+
+    return null;
+  },
+});

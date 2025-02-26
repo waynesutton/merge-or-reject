@@ -1,3 +1,10 @@
+/**
+ * schema.ts
+ *
+ * Defines the database schema for the application.
+ * Users can be either anonymous (created when starting a game) or admin (synced from Clerk).
+ */
+
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -50,13 +57,16 @@ export default defineSchema({
   games: defineTable({
     userId: v.id("users"),
     language: v.string(),
+    score: v.number(),
+    snippetsCompleted: v.number(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
     level: v.number(),
     volume: v.number(),
-    score: v.number(),
     timestamp: v.string(),
     snippetsPlayed: v.array(v.id("codeSnippets")),
     userAnswers: v.array(v.boolean()),
-  }).index("by_userId", ["userId"]),
+    createdAt: v.string(),
+  }).index("by_user", ["userId"]),
 
   // Store user statistics per language
   userStats: defineTable({
@@ -72,13 +82,12 @@ export default defineSchema({
   // Store users with authentication
   users: defineTable({
     name: v.string(),
+    email: v.optional(v.string()),
+    clerkId: v.optional(v.string()),
+    role: v.union(v.literal("admin"), v.literal("user")),
     isAnonymous: v.boolean(),
     totalGames: v.number(),
     averageScore: v.number(),
-    role: v.union(v.literal("admin"), v.literal("user")),
-    clerkId: v.optional(v.string()),
-    email: v.optional(v.string()),
-  })
-    .index("by_clerk_id", ["clerkId"])
-    .index("by_email", ["email"]),
+    createdAt: v.string(),
+  }).index("by_clerk_id", ["clerkId"]),
 });

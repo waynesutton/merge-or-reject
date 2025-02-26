@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
-import { ClerkProvider } from "@clerk/clerk-react";
+import { ClerkProvider, useClerk } from "@clerk/clerk-react";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import HomePage from "./components/HomePage";
@@ -9,6 +9,7 @@ import ScoresPage from "./components/ScoresPage";
 import NotFoundPage from "./components/NotFoundPage";
 import Footer from "./components/Footer";
 import GameContainer from "./components/GameContainer";
+import { Language } from "./types";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key");
@@ -28,8 +29,18 @@ function App() {
     document.documentElement.classList.toggle("dark", isDarkMode);
   }, [isDarkMode]);
 
-  // Wrap only the AdminDashboard route with ClerkProvider
-  const AdminRoute = () => (
+  // Handle theme toggle
+  const handleThemeToggle = () => {
+    setIsDarkMode((prev) => !prev);
+  };
+
+  // Handle language selection
+  const handleLanguageSelect = (language: Language) => {
+    navigate(`/game?language=${language}`);
+  };
+
+  // Wrap routes that need Clerk with ClerkProvider
+  const ClerkWrappedRoute = ({ children }: { children: React.ReactNode }) => (
     <ClerkProvider
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
       appearance={{
@@ -39,9 +50,22 @@ function App() {
           colorText: isDarkMode ? "#FFFFFF" : "#000000",
         },
       }}>
-      <AdminDashboard isDarkMode={isDarkMode} />
+      {children}
     </ClerkProvider>
   );
+
+  // Component to pass Clerk instance to HomePage
+  const HomePageWithClerk = () => {
+    const clerk = useClerk();
+    return (
+      <HomePage
+        isDarkMode={isDarkMode}
+        onThemeToggle={handleThemeToggle}
+        onLanguageSelect={handleLanguageSelect}
+        clerk={clerk}
+      />
+    );
+  };
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -50,15 +74,38 @@ function App() {
           <Routes>
             <Route
               path="/"
-              element={<HomePage isDarkMode={isDarkMode} onLanguageSelect={() => {}} />}
+              element={
+                <ClerkWrappedRoute>
+                  <HomePageWithClerk />
+                </ClerkWrappedRoute>
+              }
             />
-            <Route path="/game" element={<GameContainer isDarkMode={isDarkMode} />} />
-            <Route path="/admin" element={<AdminRoute />} />
+            <Route
+              path="/game"
+              element={<GameContainer isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />}
+            />
+            <Route
+              path="/admin"
+              element={
+                <ClerkWrappedRoute>
+                  <AdminDashboard isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />
+                </ClerkWrappedRoute>
+              }
+            />
             <Route
               path="/scores"
-              element={<ScoresPage onBack={() => navigate("/")} isDarkMode={isDarkMode} />}
+              element={
+                <ScoresPage
+                  onBack={() => navigate("/")}
+                  isDarkMode={isDarkMode}
+                  onThemeToggle={handleThemeToggle}
+                />
+              }
             />
-            <Route path="*" element={<NotFoundPage isDarkMode={isDarkMode} />} />
+            <Route
+              path="*"
+              element={<NotFoundPage isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />}
+            />
           </Routes>
         </main>
         <Footer isDarkMode={isDarkMode} />

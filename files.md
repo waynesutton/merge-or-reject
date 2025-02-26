@@ -53,14 +53,7 @@
   - Volume-based snippet management
   - Snippet tagging system
 
-- `convex/admin.ts`
 
-  - Admin dashboard functionality
-  - Game statistics
-  - User management
-  - Snippet management
-  - System-wide analytics
-  - Volume control
 
 - `convex/settings.ts`
 
@@ -162,6 +155,15 @@
   - User management
   - Snippet management
   - System settings
+
+- `convex/admin.ts`
+
+  - Admin dashboard functionality
+  - Game statistics
+  - User management
+  - Snippet management
+  - System-wide analytics
+  - Volume control
 
 - `src/components/Footer.tsx`
 

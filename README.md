@@ -2,7 +2,15 @@
 
 Merge or Reject is an open source game where developers test their code review skills against AI-generated code snippets. Players must decide whether to merge or reject code based on their analysis, making it a fun way to improve code review abilities.
 
-## 🎮 Game Features
+## �� Game Features
+
+### Authentication & Users
+
+- No login required to play the game
+- Anonymous users are created only when starting a game (not on page load)
+- Clerk authentication is used only for admin access on the home page
+- Admin users can see a logout button on the home page
+- User scores and progress are tracked anonymously
 
 ### Core Features
 
@@ -19,8 +27,8 @@ Merge or Reject is an open source game where developers test their code review s
   - Easy: 120 seconds, 3 rounds
   - Medium: 100 seconds, 5 rounds
   - Hard: 30 seconds, 7 rounds
-- Instant feedback on decisions
-- Detailed explanations for each snippet
+- Instant feedback on decisions (not yet)
+- Detailed explanations for each snippet (not yet)
 - Score tracking and statistics
 - Confetti celebration for perfect scores
 
@@ -102,7 +110,7 @@ Merge or Reject is an open source game where developers test their code review s
 
 2. Install dependencies:
    \`\`\`bash
-npm install
+   npm install
    \`\`\`
 
 3. Set up environment variables:
@@ -115,7 +123,7 @@ npm install
 
 4. Start the development server:
    \`\`\`bash
-npm run dev
+   npm run dev
    \`\`\`
 
 ## 🤝 Contributing

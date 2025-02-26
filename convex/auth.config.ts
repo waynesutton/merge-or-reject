@@ -4,6 +4,8 @@ console.log("Auth Config Environment:", {
   publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY?.substring(0, 10) + "...",
 });
 
+// Hardcoded configuration for simplicity
+// In a production environment, you would use environment variables
 export default {
   providers: [
     {
