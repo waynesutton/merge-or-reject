@@ -332,16 +332,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     }));
 
     setTimeout(() => {
-      if (
-        gameState.currentIndex ===
-        (snippets.length > 0 ? snippets.length - 1 : LEVEL_ROUNDS[gameState.level] - 1)
-      ) {
+      if (gameState.currentIndex >= snippets.length - 1) {
         setGameState((prev) => ({
           ...prev,
           gameOver: true,
-          confettiActive:
-            prev.score + (isCorrect ? 1 : 0) ===
-            (snippets.length > 0 ? snippets.length : LEVEL_ROUNDS[prev.level]),
+          confettiActive: prev.score + (isCorrect ? 1 : 0) === snippets.length,
         }));
       } else {
         setGameState((prev) => ({
@@ -501,7 +496,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       )}
       <div className="flex justify-center space-x-4 items-center">
         <div className={`mr-4 font-medium ${isDarkMode ? "text-white" : "text-gray-800"}`}>
-          Score: {gameState.score}
+          Score: {gameState.score} | Remaining: {snippets.length - (gameState.currentIndex + 1)}
         </div>
         <button
           onClick={() => handleVote(true)}
