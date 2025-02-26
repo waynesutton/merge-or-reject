@@ -165,6 +165,16 @@ export const getAnalytics = query({
       // Get language volumes data
       const languageVolumesData = await ctx.db.query("languageVolumes").collect();
 
+      // Get all code snippets to calculate accurate snippet counts
+      const codeSnippets = await ctx.db.query("codeSnippets").collect();
+
+      // Calculate snippets per language
+      const snippetsByLanguage = new Map<string, number>();
+      for (const snippet of codeSnippets) {
+        const count = snippetsByLanguage.get(snippet.language) || 0;
+        snippetsByLanguage.set(snippet.language, count + 1);
+      }
+
       // Format difficulty summary
       const difficultySummary = Array.from(difficultyMap.entries()).map(([difficulty, stats]) => ({
         difficulty,
@@ -186,11 +196,11 @@ export const getAnalytics = query({
         averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
       }));
 
-      // Format language volumes
+      // Format language volumes with accurate snippet counts
       const languageVolumes = languageVolumesData.map((volume) => ({
         language: volume.language,
         volumeCount: volume.currentVolume,
-        snippetCount: volume.snippetCount,
+        snippetCount: snippetsByLanguage.get(volume.language) || 0, // Use actual snippet count from codeSnippets table
       }));
 
       console.log(`Analytics data retrieved successfully for ${args.clerkId}`);
@@ -327,6 +337,56 @@ export const addSnippet = mutation({
       return snippetId;
     } catch (error) {
       console.error("Error adding snippet:", error);
+      throw error;
+    }
+  },
+});
+
+/**
+ * Update language volume details - admin only
+ */
+export const updateLanguageVolume = mutation({
+  args: {
+    language: v.string(),
+    currentVolume: v.number(),
+    clerkId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    try {
+      // Verify admin access
+      await requireAdmin(ctx, args.clerkId);
+
+      // Get the existing language volume record
+      const languageVolume = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", args.language))
+        .unique();
+
+      if (!languageVolume) {
+        throw new Error(`Language volume for ${args.language} not found`);
+      }
+
+      // Count snippets to ensure accurate snippet count
+      const snippets = await ctx.db
+        .query("codeSnippets")
+        .withIndex("by_language_volume", (q) => q.eq("language", args.language))
+        .collect();
+
+      const snippetCount = snippets.length;
+
+      // Update the language volume with the new current volume and accurate snippet count
+      await ctx.db.patch(languageVolume._id, {
+        currentVolume: args.currentVolume,
+        snippetCount: snippetCount,
+      });
+
+      console.log(
+        `Admin ${args.clerkId} updated language volume for ${args.language} to volume ${args.currentVolume}`
+      );
+      return null;
+    } catch (error) {
+      console.error("Error updating language volume:", error);
       throw error;
     }
   },

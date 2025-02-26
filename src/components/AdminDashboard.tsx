@@ -48,6 +48,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   const [editingSnippet, setEditingSnippet] = useState<any | null>(null);
   const [showEditSnippet, setShowEditSnippet] = useState(false);
 
+  // State for editing language volumes
+  const [editingVolume, setEditingVolume] = useState<string | null>(null);
+  const [volumeEditValue, setVolumeEditValue] = useState<number>(1);
+
   // Log authentication state for debugging
   useEffect(() => {
     console.log("Auth state:", { isLoaded, isSignedIn, userId: user?.id });
@@ -69,6 +73,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const createNewVolumeMutation = useMutation(api.settings.createNewVolume);
     const deleteSnippetMutation = useMutation(api.snippets.deleteSnippet);
     const updateSnippetMutation = useMutation(api.snippets.updateSnippet);
+    const updateLanguageVolumeMutation = useMutation(api.admin.updateLanguageVolume);
 
     // Handle unauthorized access or loading state
     if (!user?.id || !settings || !snippets) {
@@ -214,6 +219,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         setEditingSnippet(null);
       } catch (error) {
         console.error("Error updating snippet:", error);
+      }
+    };
+
+    const handleUpdateLanguageVolume = async (language: string) => {
+      try {
+        await updateLanguageVolumeMutation({
+          language,
+          currentVolume: volumeEditValue,
+          clerkId: user?.id || "",
+        });
+        setEditingVolume(null);
+      } catch (error) {
+        console.error("Error updating language volume:", error);
       }
     };
 
@@ -574,32 +592,77 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 const languageName =
                   LANGUAGES[volume.language as keyof typeof LANGUAGES] ||
                   volume.language.charAt(0).toUpperCase() + volume.language.slice(1);
+                const isEditing = editingVolume === volume.language;
+
                 return (
                   <div key={volume.language} className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-[#00FF94]">{languageName}</h4>
-                      <button
-                        onClick={() => handleCreateNewVolume(volume.language as Language)}
-                        className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
-                        <Plus className="w-4 h-4" />
-                        <span>New Volume</span>
-                      </button>
+                      <div className="flex space-x-2">
+                        {isEditing ? (
+                          <>
+                            <button
+                              onClick={() => setEditingVolume(null)}
+                              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                              <X className="w-4 h-4" />
+                              <span>Cancel</span>
+                            </button>
+                            <button
+                              onClick={() => handleUpdateLanguageVolume(volume.language)}
+                              className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+                              <span>Save</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingVolume(volume.language);
+                                setVolumeEditValue(volume.currentVolume);
+                              }}
+                              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                              <Edit className="w-4 h-4" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleCreateNewVolume(volume.language as Language)}
+                              className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+                              <Plus className="w-4 h-4" />
+                              <span>New Volume</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-black/20 p-4 rounded-lg">
-                      <div>
-                        <span className="text-sm text-gray-400">Total Snippets</span>
-                        <p className="text-xl">{volume.snippetCount}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-400">Last Updated</span>
-                        <p className="text-sm">
-                          {new Date(volume.lastAiGeneration).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-400">Current Volume</span>
-                        <p className="text-xl">{volume.currentVolume}</p>
+                    <div className={`${isEditing ? "bg-black/40" : "bg-black/20"} p-4 rounded-lg`}>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div>
+                          <span className="text-sm text-gray-400">Total Snippets</span>
+                          <p className="text-xl">{volume.snippetCount}</p>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-400">Last Updated</span>
+                          <p className="text-sm">
+                            {new Date(volume.lastAiGeneration).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-400">Current Volume</span>
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              min="1"
+                              value={volumeEditValue}
+                              onChange={(e) =>
+                                setVolumeEditValue(Math.max(1, parseInt(e.target.value) || 1))
+                              }
+                              className="w-full bg-black/30 px-2 py-1 rounded-lg text-lg text-white"
+                            />
+                          ) : (
+                            <p className="text-xl">{volume.currentVolume}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
