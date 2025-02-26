@@ -11,6 +11,9 @@
  * - Updated user synchronization to only sync admin users
  * - Added type guard for UserJSON vs DeletedObjectJSON
  * - Fixed mutation calls to use proper function references
+ * - Enhanced admin role detection from Clerk public metadata
+ * - Added detailed logging for easier debugging
+ * - Improved error handling with specific error messages
  */
 
 import { v } from "convex/values";
@@ -19,6 +22,7 @@ import { internal } from "./_generated/api";
 import { Webhook } from "svix";
 import { WebhookEvent } from "@clerk/backend";
 import { UserJSON, DeletedObjectJSON } from "@clerk/types";
+import { hasAdminRole } from "./auth";
 
 // Type guard to check if the data is UserJSON
 function isUserJSON(data: unknown): data is UserJSON {
@@ -33,7 +37,9 @@ export const clerkWebhook = internalAction({
   handler: async (ctx, args) => {
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
     if (!WEBHOOK_SECRET) {
-      throw new Error("Missing CLERK_WEBHOOK_SECRET");
+      const error = "Missing CLERK_WEBHOOK_SECRET environment variable";
+      console.error(error);
+      throw new Error(error);
     }
 
     // Verify webhook signature
@@ -42,9 +48,12 @@ export const clerkWebhook = internalAction({
 
     try {
       evt = wh.verify(JSON.stringify(args.payload), args.headers) as WebhookEvent;
+      console.log(`Verified webhook event of type: ${evt.type}`);
     } catch (err) {
       console.error("Failed to verify webhook:", err);
-      throw new Error("Failed to verify webhook");
+      throw new Error(
+        `Failed to verify webhook: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
 
     const eventType = evt.type;
@@ -53,12 +62,13 @@ export const clerkWebhook = internalAction({
       eventType !== "user.updated" &&
       eventType !== "user.deleted"
     ) {
+      console.log(`Ignoring irrelevant event type: ${eventType}`);
       return;
     }
 
     // Check if the event data is a user event
     if (!isUserJSON(evt.data)) {
-      console.error("Invalid user data received");
+      console.error("Invalid user data received in webhook");
       return;
     }
 
@@ -66,21 +76,30 @@ export const clerkWebhook = internalAction({
     const clerkId = data.id;
 
     if (!clerkId) {
-      throw new Error("Missing Clerk ID in webhook");
+      const error = "Missing Clerk ID in webhook data";
+      console.error(error);
+      throw new Error(error);
     }
+
+    console.log(`Processing ${eventType} event for user: ${clerkId}`);
 
     // Get primary email
     const primaryEmailId = data.primary_email_address_id;
     const email =
       data.email_addresses?.find((email) => email.id === primaryEmailId)?.email_address || "";
 
+    if (!email) {
+      console.log(`No primary email found for user ${clerkId}`);
+    }
+
     // Get user name
     const firstName = data.first_name || "";
     const lastName = data.last_name || "";
     const name = [firstName, lastName].filter(Boolean).join(" ") || "Anonymous User";
 
-    // Check if user has admin role in public metadata
-    const isAdmin = (data.public_metadata as { role?: string })?.role === "admin";
+    // Use auth utility to check if user has admin role
+    const isAdmin = hasAdminRole(data);
+    console.log(`User ${clerkId} has admin role: ${isAdmin}`);
 
     switch (eventType) {
       case "user.created":
@@ -88,29 +107,39 @@ export const clerkWebhook = internalAction({
         // Only sync admin users to the database
         if (isAdmin) {
           try {
-            await ctx.runMutation(internal.users._syncUser, {
+            const result = await ctx.runMutation(internal.users._syncUser, {
               clerkId,
               email,
               name,
               role: "admin",
             });
+
+            if (result.error) {
+              console.error(`Failed to sync admin user: ${result.error}`);
+            } else {
+              console.log(
+                `${result.isNew ? "Created" : "Updated"} admin user ${result.userId} for ClerkID ${clerkId}`
+              );
+            }
           } catch (error) {
-            console.error("Failed to sync admin user:", error);
-            throw new Error("Failed to sync admin user");
+            console.error("Exception while syncing admin user:", error);
+            throw new Error(
+              `Failed to sync admin user: ${error instanceof Error ? error.message : String(error)}`
+            );
           }
+        } else {
+          console.log(`Skipping sync for non-admin user ${clerkId}`);
         }
         break;
 
       case "user.deleted":
-        // Optionally handle user deletion if needed
-        // Regular users aren't in the database unless they start a game
-        // Admin users might need to be removed
-        if (isAdmin) {
-          try {
-            await ctx.runMutation(internal.users._deleteUser, { clerkId });
-          } catch (error) {
-            console.error("Failed to delete admin user:", error);
-          }
+        // Handle user deletion
+        try {
+          await ctx.runMutation(internal.users._deleteUser, { clerkId });
+          console.log(`Deleted user with ClerkID ${clerkId}`);
+        } catch (error) {
+          console.error("Failed to delete user:", error);
+          // Don't throw here to prevent webhook failures on deletion
         }
         break;
     }

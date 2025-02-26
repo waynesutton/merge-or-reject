@@ -5,6 +5,14 @@
  * - User authentication and admin verification
  * - User search functionality
  * - User deletion with cascade cleanup
+ * - Synchronization between Clerk authentication and Convex database
+ *
+ * Changes made:
+ * - Improved error handling in user synchronization
+ * - Enhanced admin user detection and validation
+ * - Added detailed error messages for authentication failures
+ * - Optimized database queries for user lookups
+ * - Updated getUserRole to provide more robust role checking
  */
 
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
@@ -76,6 +84,7 @@ export const getUser = query({
 
 /**
  * Create or update a user from Clerk webhook
+ * Enhanced with better error handling and admin synchronization
  */
 export const _syncUser = internalMutation({
   args: {
@@ -84,37 +93,60 @@ export const _syncUser = internalMutation({
     name: v.string(),
     role: v.union(v.literal("admin"), v.literal("user")),
   },
-  returns: v.string(),
+  returns: v.object({
+    userId: v.string(),
+    isNew: v.boolean(),
+    error: v.optional(v.string()),
+  }),
   handler: async (ctx, args) => {
-    // Check if user exists
-    const existingUser = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("clerkId"), args.clerkId))
-      .first();
+    try {
+      // Check if user exists using the index for efficiency
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+        .unique();
 
-    if (existingUser) {
-      // Update existing user
-      await ctx.db.patch(existingUser._id, {
+      if (existingUser) {
+        // Update existing user with new data from Clerk
+        await ctx.db.patch(existingUser._id, {
+          email: args.email,
+          name: args.name,
+          role: args.role,
+          // Don't update isAnonymous - maintain existing setting
+        });
+
+        console.log(`Updated existing user ${existingUser._id} with Clerk ID ${args.clerkId}`);
+        return {
+          userId: existingUser._id,
+          isNew: false,
+        };
+      }
+
+      // Create new user with data from Clerk
+      const userId = await ctx.db.insert("users", {
+        clerkId: args.clerkId,
         email: args.email,
         name: args.name,
         role: args.role,
+        isAnonymous: false, // Admin users from Clerk are never anonymous
+        totalGames: 0,
+        averageScore: 0,
+        createdAt: new Date().toISOString(),
       });
-      return existingUser._id;
+
+      console.log(`Created new user ${userId} with Clerk ID ${args.clerkId}`);
+      return {
+        userId,
+        isNew: true,
+      };
+    } catch (error: any) {
+      console.error("Error syncing user:", error);
+      return {
+        userId: "",
+        isNew: false,
+        error: error.message || "Unknown error occurred during user synchronization",
+      };
     }
-
-    // Create new user
-    const userId = await ctx.db.insert("users", {
-      clerkId: args.clerkId,
-      email: args.email,
-      name: args.name,
-      role: args.role,
-      isAnonymous: false,
-      totalGames: 0,
-      averageScore: 0,
-      createdAt: new Date().toISOString(),
-    });
-
-    return userId;
   },
 });
 
@@ -226,7 +258,8 @@ export const fixUserSchema = mutation({
 });
 
 /**
- * Get user's role by Clerk ID
+ * Get user's role by Clerk ID with enhanced error handling
+ * Available to both public and internal callers
  */
 export const getUserRole = query({
   args: {
@@ -234,12 +267,63 @@ export const getUserRole = query({
   },
   returns: v.union(v.literal("admin"), v.literal("user"), v.null()),
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("clerkId"), args.clerkId))
-      .first();
+    try {
+      if (!args.clerkId) {
+        console.log("No Clerk ID provided to getUserRole");
+        return null;
+      }
 
-    return user?.role ?? null;
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+        .unique();
+
+      if (!user) {
+        console.log(`No user found with Clerk ID ${args.clerkId}`);
+        return null;
+      }
+
+      console.log(`Found user with role: ${user.role}`);
+      return user.role;
+    } catch (error) {
+      console.error("Error getting user role:", error);
+      return null; // Return null instead of throwing to handle gracefully in UI
+    }
+  },
+});
+
+/**
+ * Get user's role by Clerk ID - internal version
+ * Same as getUserRole but exposed as an internal query for auth module use
+ */
+export const _getUserRole = internalQuery({
+  args: {
+    clerkId: v.string(),
+  },
+  returns: v.union(v.literal("admin"), v.literal("user"), v.null()),
+  handler: async (ctx, args) => {
+    try {
+      if (!args.clerkId) {
+        console.log("No Clerk ID provided to _getUserRole");
+        return null;
+      }
+
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+        .unique();
+
+      if (!user) {
+        console.log(`No user found with Clerk ID ${args.clerkId}`);
+        return null;
+      }
+
+      console.log(`Found user with role: ${user.role}`);
+      return user.role;
+    } catch (error) {
+      console.error("Error getting user role:", error);
+      return null; // Return null instead of throwing to handle gracefully in UI
+    }
   },
 });
 
@@ -252,5 +336,51 @@ export const _checkUsers = internalQuery({
   handler: async (ctx) => {
     const users = await ctx.db.query("users").collect();
     return users;
+  },
+});
+
+/**
+ * Force synchronization of a Clerk user to the database
+ * Used when an admin logs in via the UI but hasn't been synced yet
+ */
+export const syncClerkUser = mutation({
+  args: {
+    clerkId: v.string(),
+    email: v.string(),
+    name: v.string(),
+    role: v.union(v.literal("admin"), v.literal("user")),
+  },
+  returns: v.union(v.boolean(), v.null()),
+  handler: async (ctx, args) => {
+    try {
+      // Check if user exists
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
+        .unique();
+
+      if (existingUser) {
+        console.log(`User ${args.clerkId} already exists in database`);
+        return true;
+      }
+
+      // Create new user with provided data
+      const userId = await ctx.db.insert("users", {
+        clerkId: args.clerkId,
+        email: args.email,
+        name: args.name,
+        role: args.role,
+        isAnonymous: false,
+        totalGames: 0,
+        averageScore: 0,
+        createdAt: new Date().toISOString(),
+      });
+
+      console.log(`Manually synced user ${userId} with Clerk ID ${args.clerkId}`);
+      return true;
+    } catch (error) {
+      console.error("Error syncing user manually:", error);
+      return null;
+    }
   },
 });

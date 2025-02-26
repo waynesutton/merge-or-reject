@@ -13,7 +13,7 @@
  * - Fixed user role checking with Clerk integration
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { useUser, SignedOut, RedirectToSignIn, useClerk } from "@clerk/clerk-react";
@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Bot,
+  Info,
 } from "lucide-react";
 import { LANGUAGES, LEVEL_TIMES, Language, Difficulty } from "../types";
 import Header from "./Header";
@@ -62,11 +63,58 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [syncAttempted, setSyncAttempted] = useState(false);
 
   // Check if user is admin
   const userRole = useQuery(api.users.getUserRole, {
     clerkId: user?.id ?? "",
   });
+
+  // Manual sync function
+  const syncUser = useMutation(api.users.syncClerkUser);
+
+  // Try to sync the user if they're not found in the database
+  useEffect(() => {
+    const attemptSync = async () => {
+      if (isSignedIn && user && userRole === null && !syncAttempted) {
+        setSyncAttempted(true);
+
+        // Get primary email
+        const primaryEmail = user.primaryEmailAddress?.emailAddress || "";
+
+        // Get user name
+        const firstName = user.firstName || "";
+        const lastName = user.lastName || "";
+        const name = [firstName, lastName].filter(Boolean).join(" ") || "Admin User";
+
+        // Check if user has admin role in metadata
+        const isAdmin = user.publicMetadata?.role === "admin";
+
+        console.log("Syncing user:", {
+          id: user.id,
+          email: primaryEmail,
+          name,
+          isAdmin,
+          metadata: user.publicMetadata,
+        });
+
+        // Sync user to database
+        await syncUser({
+          clerkId: user.id,
+          email: primaryEmail,
+          name: name,
+          role: isAdmin ? "admin" : "user",
+        });
+
+        // Force a refresh of the role query
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    };
+
+    attemptSync();
+  }, [user, userRole, isSignedIn, syncUser, syncAttempted]);
 
   // Show loading state while checking authentication
   if (!isLoaded) {
@@ -84,15 +132,46 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     return <RedirectToSignIn />;
   }
 
+  // Check if user has admin role in Clerk metadata
+  const hasAdminMetadata = user?.publicMetadata?.role === "admin";
+
   // Show error if not admin
   if (userRole !== "admin") {
     return (
       <>
         <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} clerk={{ signOut, user }} />
         <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
+          <div className="text-center max-w-md mx-auto">
             <h1 className="text-2xl mb-4">Access Denied</h1>
             <p className="text-gray-400 mb-8">You do not have administrator privileges.</p>
+
+            {syncAttempted && (
+              <div className="bg-black/30 p-4 rounded-lg mb-6 text-left">
+                <h2 className="flex items-center text-lg mb-2 text-amber-400">
+                  <Info className="w-5 h-5 mr-2" />
+                  Troubleshooting
+                </h2>
+                <ul className="list-disc pl-6 text-sm text-gray-300 space-y-2">
+                  <li>
+                    <strong>Current user:</strong> {user?.id}
+                    {hasAdminMetadata ? (
+                      <span className="text-green-400"> (Has admin role in Clerk)</span>
+                    ) : (
+                      <span className="text-red-400"> (No admin role in Clerk)</span>
+                    )}
+                  </li>
+                  <li>
+                    <strong>Fix:</strong> Go to your Clerk Dashboard, find this user, and add
+                    <code className="bg-black/40 px-2 py-1 rounded mx-1 text-xs">
+                      {'{ "role": "admin" }'}
+                    </code>
+                    to the Public Metadata.
+                  </li>
+                  <li>After updating in Clerk, refresh this page to try again.</li>
+                </ul>
+              </div>
+            )}
+
             <button
               onClick={() => navigate("/")}
               className="px-6 py-3 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">

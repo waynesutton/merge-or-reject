@@ -74,7 +74,21 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, onThemeToggle, clerk }) => 
 
           {isHomePage && clerk?.user && (
             <button
-              onClick={() => clerk.signOut()}
+              onClick={() => {
+                if (clerk.signOut) {
+                  clerk
+                    .signOut()
+                    .then(() => {
+                      // Explicit redirection after successful logout
+                      navigate("/");
+                    })
+                    .catch((error) => {
+                      console.error("Logout failed:", error);
+                      // Still redirect on error, but log the failure
+                      navigate("/");
+                    });
+                }
+              }}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
                 isDarkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"
               }`}>

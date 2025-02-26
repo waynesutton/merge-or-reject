@@ -20,6 +20,7 @@ import type * as codeSnippets from "../codeSnippets.js";
 import type * as fix from "../fix.js";
 import type * as game from "../game.js";
 import type * as games from "../games.js";
+import type * as http from "../http.js";
 import type * as init from "../init.js";
 import type * as scores from "../scores.js";
 import type * as settings from "../settings.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   fix: typeof fix;
   game: typeof game;
   games: typeof games;
+  http: typeof http;
   init: typeof init;
   scores: typeof scores;
   settings: typeof settings;
