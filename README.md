@@ -4,14 +4,16 @@ Merge or Reject is an open source game where developers test their code review s
 
 ## Todo
 
-[ ] Add AI features
-[] Add Jamel to admin role in clerk
-[] Test algorithms for merge and reject
-[] Add more snippets for program languages
-[] change the cat to gif or video of game play
-[] add short url link to Convex in the footer
-[] setup hosting on netlify and add netlify widget to readme
-[] buy domain name and setup up with netlify and clerk
+## ✅ To-Do List
+
+- [ ] Add AI features
+- [ ] Add Jamal to admin role in Clerk
+- [ ] Test algorithms for merge and reject
+- [ ] Add more snippets for programming languages
+- [ ] Change the cat to a GIF or video of gameplay
+- [ ] Add a short URL link to Convex in the footer
+- [ ] Set up hosting on Netlify and add the Netlify widget to the README
+- [ ] Buy a domain name and set it up with Netlify and Clerk
 
 ## 🎮 Game Features
 
