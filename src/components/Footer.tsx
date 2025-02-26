@@ -36,7 +36,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
-                  href="#"
+                  href="/scores"
                   className={`${isDarkMode ? "text-gray-400" : "text-gray-600"} hover:text-[#00FF94] transition-colors`}>
                   Scores
                 </a>
