@@ -206,6 +206,33 @@ export const updateUserName = mutation({
 });
 
 /**
+ * Update an anonymous user's display name - public access
+ * This function allows changing the name of an anonymous user without authentication
+ */
+export const updateAnonymousUserName = mutation({
+  args: {
+    userId: v.id("users"),
+    name: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    
+    // Only allow updating anonymous users with this function
+    if (!user.isAnonymous) {
+      throw new Error("This function can only update anonymous users");
+    }
+
+    await ctx.db.patch(args.userId, {
+      name: args.name,
+    });
+
+    return args.name;
+  },
+});
+
+/**
  * Delete a user and all associated data
  */
 export const _deleteUser = internalMutation({

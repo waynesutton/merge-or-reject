@@ -15,9 +15,9 @@ interface GameResultProps {
   playerName: string;
 }
 
-const GameResult: React.FC<GameResultProps> = ({ 
-  score, 
-  language, 
+const GameResult: React.FC<GameResultProps> = ({
+  score,
+  language,
   level,
   volume,
   onPlayAgain,
@@ -27,10 +27,11 @@ const GameResult: React.FC<GameResultProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(playerName);
+  const [displayName, setDisplayName] = useState(playerName);
   const maxRounds = level === 1 ? 3 : level === 2 ? 5 : 7;
 
-  const updateName = useMutation(api.users.updateUserName);
-  
+  const updateName = useMutation(api.users.updateAnonymousUserName);
+
   const shareText = `I scored ${score}/${maxRounds} on Merge or Reject playing ${language} (Level ${level}, Vol ${volume})! Can you beat my score? 🚀 #coding #MergeOrReject`;
   const shareUrl = window.location.origin;
 
@@ -53,7 +54,8 @@ const GameResult: React.FC<GameResultProps> = ({
     if (tempName.trim()) {
       try {
         await updateName({ userId, name: tempName.trim() });
-      setIsEditing(false);
+        setDisplayName(tempName.trim());
+        setIsEditing(false);
       } catch (error) {
         console.error("Failed to update name:", error);
       }
@@ -84,7 +86,7 @@ const GameResult: React.FC<GameResultProps> = ({
             </div>
           ) : (
             <>
-              <span className="text-xl">{playerName}</span>
+              <span className="text-xl">{displayName}</span>
               <button
                 onClick={() => setIsEditing(true)}
                 className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"} hover:text-[#EE342F]`}>
@@ -93,7 +95,7 @@ const GameResult: React.FC<GameResultProps> = ({
             </>
           )}
         </div>
-        
+
         <p className="text-2xl text-[#EE342F] mb-2">
           {score}/{maxRounds}
         </p>
@@ -109,7 +111,7 @@ const GameResult: React.FC<GameResultProps> = ({
           </div>
         )}
       </div>
-      
+
       <div className="space-y-4">
         <div className="flex flex-col space-y-3">
           <button
@@ -118,14 +120,14 @@ const GameResult: React.FC<GameResultProps> = ({
             <Twitter className="w-5 h-5" />
             <span>Share on X</span>
           </button>
-          
+
           <button
             onClick={shareToLinkedIn}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-[#0A66C2] text-white rounded-lg hover:bg-[#094d92] transition-colors">
             <Linkedin className="w-5 h-5" />
             <span>Share on LinkedIn</span>
           </button>
-          
+
           <button
             onClick={shareToBluesky}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-[#0085FF] text-white rounded-lg hover:bg-[#0066cc] transition-colors">
@@ -133,7 +135,7 @@ const GameResult: React.FC<GameResultProps> = ({
             <span>Share on Bluesky</span>
           </button>
         </div>
-        
+
         <button
           onClick={onPlayAgain}
           className="flex items-center justify-center space-x-2 px-6 py-3 bg-[#EE342F] text-white rounded-lg mx-auto hover:bg-[#D42D29] transition-colors w-full">

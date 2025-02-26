@@ -378,7 +378,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     } catch (error) {
       console.error("Failed to start game:", error);
       // Show error to user
-      alert("Failed to start game. Please try again.");
+      alert("This game is not ready yet.");
       // Reset game state
       resetGameState();
     }
