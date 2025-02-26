@@ -234,7 +234,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <select
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value as Language)}
-                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300">
+                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  id="add-snippet-language"
+                  name="add-snippet-language">
                   {Object.entries(LANGUAGES).map(([key, name]) => (
                     <option key={key} value={key}>
                       {name}
@@ -247,7 +249,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <select
                   value={selectedDifficulty}
                   onChange={(e) => setSelectedDifficulty(e.target.value as Difficulty)}
-                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300">
+                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  id="add-snippet-difficulty"
+                  name="add-snippet-difficulty">
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
@@ -260,7 +264,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   onChange={(e) =>
                     setNewSnippet((prev) => ({ ...prev, volume: parseInt(e.target.value) }))
                   }
-                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300">
+                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                  id="add-snippet-volume"
+                  name="add-snippet-volume">
                   {[
                     ...Array(
                       settingsData.volumes.find((v) => v.language === selectedLanguage)
@@ -279,17 +285,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <label className="block text-sm text-gray-400 mb-1">Code</label>
               <textarea
                 value={newSnippet.code}
-                onChange={(e) => {
-                  const newValue = e.target.value;
+                onInput={(e) =>
                   setNewSnippet((prev) => ({
                     ...prev,
-                    code: newValue,
-                  }));
-                }}
+                    code: (e.target as HTMLTextAreaElement).value,
+                  }))
+                }
                 className="w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono"
                 placeholder="Enter code snippet here..."
                 spellCheck="false"
                 autoComplete="off"
+                id="add-snippet-code"
+                name="add-snippet-code"
               />
             </div>
 
@@ -302,6 +309,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     setNewSnippet((prev) => ({ ...prev, isValid: e.target.checked }))
                   }
                   className="rounded bg-black/30"
+                  id="add-snippet-valid"
+                  name="add-snippet-valid"
                 />
                 <span className="text-sm text-gray-300">Valid Code</span>
               </label>
@@ -316,6 +325,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 }
                 className="w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                 placeholder="Explain why this code is valid/invalid..."
+                id="add-snippet-explanation"
+                name="add-snippet-explanation"
               />
             </div>
 
@@ -364,6 +375,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     }
                     disabled
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                    id="edit-snippet-language"
+                    name="edit-snippet-language"
                   />
                 </div>
                 <div>
@@ -373,6 +386,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     value={editingSnippet.difficulty}
                     disabled
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                    id="edit-snippet-difficulty"
+                    name="edit-snippet-difficulty"
                   />
                 </div>
                 <div>
@@ -382,6 +397,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     value={editingSnippet.volume}
                     disabled
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                    id="edit-snippet-volume"
+                    name="edit-snippet-volume"
                   />
                 </div>
               </div>
@@ -395,6 +412,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   placeholder="Enter code snippet here..."
                   spellCheck="false"
                   autoComplete="off"
+                  id="edit-snippet-code"
+                  name="edit-snippet-code"
                 />
               </div>
 
@@ -407,6 +426,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                       setEditingSnippet({ ...editingSnippet, isValid: e.target.checked })
                     }
                     className="rounded bg-black/30"
+                    id="edit-snippet-valid"
+                    name="edit-snippet-valid"
                   />
                   <span className="text-sm text-gray-300">Valid Code</span>
                 </label>
@@ -421,6 +442,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   }
                   className="w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                   placeholder="Explain why this code is valid/invalid..."
+                  id="edit-snippet-explanation"
+                  name="edit-snippet-explanation"
                 />
               </div>
 
