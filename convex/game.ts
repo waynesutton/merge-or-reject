@@ -20,6 +20,7 @@ export const startGame = mutation({
         code: v.string(),
         language: v.string(),
         explanation: v.string(),
+        isValid: v.boolean(),
       })
     ),
     timeLimit: v.number(),
@@ -67,6 +68,7 @@ export const startGame = mutation({
         code: s.code,
         language: s.language,
         explanation: s.explanation,
+        isValid: s.isValid,
       })),
       timeLimit: settings.timeLimits[difficulty],
     };
@@ -232,5 +234,27 @@ export const getGameState = query({
         score: game.score,
       },
     };
+  },
+});
+
+/**
+ * Save final game score - public access
+ */
+export const saveGameScore = mutation({
+  args: {
+    gameId: v.id("games"),
+    score: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const game = await ctx.db.get(args.gameId);
+    if (!game) throw new Error("Game not found");
+
+    // Update game with the final score
+    await ctx.db.patch(args.gameId, {
+      score: args.score,
+    });
+
+    return null;
   },
 });

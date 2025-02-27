@@ -13,6 +13,7 @@ interface GameResultProps {
   isDarkMode: boolean;
   userId: Id<"users">;
   playerName: string;
+  maxRounds?: number;
 }
 
 const GameResult: React.FC<GameResultProps> = ({
@@ -24,11 +25,12 @@ const GameResult: React.FC<GameResultProps> = ({
   isDarkMode,
   userId,
   playerName,
+  maxRounds: propMaxRounds,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(playerName);
   const [displayName, setDisplayName] = useState(playerName);
-  const maxRounds = level === 1 ? 3 : level === 2 ? 5 : 7;
+  const maxRounds = propMaxRounds || (level === 1 ? 3 : level === 2 ? 5 : 7);
 
   const updateName = useMutation(api.users.updateAnonymousUserName);
 
@@ -102,12 +104,10 @@ const GameResult: React.FC<GameResultProps> = ({
         <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
           {language} · Level {level} · Volume {volume}
         </p>
-        {score <= maxRounds / 2 && (
+        {score === maxRounds && (
           <div className={`mt-4 p-4 ${isDarkMode ? "bg-black/30" : "bg-gray-100"} rounded-lg`}>
-            <p className="text-xl mb-2">😂 You are not smarter than AI!</p>
-            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-              Don't worry, you can always try again!
-            </p>
+            <p className="text-xl mb-2"> 🎉🎉🎉 Congrats! You are smarter than AI!</p>
+            <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Let the world know!</p>
           </div>
         )}
       </div>

@@ -25,23 +25,23 @@ export type CodeSnippet = {
 3. The actual game logic for checking correctness is in `GameContainer.tsx`. The key function is `handleVote`:
 
 ```301:301:src/components/GameContainer.tsx
-const handleVote = (isHot: boolean) => {
+const handleVote = (isCorrect: boolean) => {
 ```
 
 Here's how it works:
 
 1. When a snippet is loaded in the game, it comes with its `isValid` property from the database
 2. When the user clicks "Merge" or "Reject":
-   - "Merge" button sends `isHot = true`
-   - "Reject" button sends `isHot = false`
-3. The game compares the user's vote (`isHot`) against the snippet's `isValid` property:
-   - If `isHot === snippet.isValid`, the answer is correct
-   - If `isHot !== snippet.isValid`, the answer is incorrect
+   - "Merge" button sends `isCorrect = true`
+   - "Reject" button sends `isCorrect = false`
+3. The game compares the user's vote against the snippet's `isValid` property:
+   - If the vote matches `snippet.isValid`, the answer is correct
+   - If the vote doesn't match `snippet.isValid`, the answer is incorrect
 
 So the formula is simply:
 
 ```
-isCorrect = (userVote === snippet.isValid)
+isAnswerCorrect = (isCorrect === snippet.isValid)
 ```
 
 The connection flow is:

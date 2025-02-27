@@ -1,11 +1,13 @@
-import React from "react";
-import { Code2, Github } from "lucide-react";
+import React, { useState } from "react";
+import { Code2, Github, X } from "lucide-react";
 
 interface FooterProps {
   isDarkMode: boolean;
 }
 
 const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
+  const [showConvexBox, setShowConvexBox] = useState(true);
+
   return (
     <footer
       className={`${isDarkMode ? "bg-[#1A1A1A] border-[#1a1a1a]" : "bg-white border-gray-200"} border-t`}>
@@ -91,6 +93,21 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
           <div className="flex space-x-6">{/* Future links can be added here */}</div>
         </div>
       </div>
+
+      {showConvexBox && (
+        <div className="fixed bottom-4 right-4 bg-black rounded-lg shadow-lg overflow-hidden">
+          <a href="https://convex.dev" className="block py-2.5 px-7 flex items-center">
+            <span className="text-white mr-2">Powered by</span>
+            <img src="/convex-logo-white-transparent.svg" alt="Convex" className="w-[100px]" />
+            <button
+              onClick={() => setShowConvexBox(false)}
+              className="text-white hover:text-gray-300 ml-2"
+              aria-label="Close">
+              <X size={12} />
+            </button>
+          </a>
+        </div>
+      )}
     </footer>
   );
 };

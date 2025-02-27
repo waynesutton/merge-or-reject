@@ -58,6 +58,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   const glitchInstanceRef = useRef<any>(null);
   const startGame = useMutation(api.game.startGame);
   const completeGame = useMutation(api.game.submitAnswer);
+  const saveGameScore = useMutation(api.game.saveGameScore);
 
   // Get language from URL query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -197,51 +198,31 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   // Handle confetti effect
   useEffect(() => {
     if (gameState.confettiActive) {
-      const duration = 3 * 1000;
-      const animationEnd = Date.now() + duration;
+      // Single confetti burst from the top of the page
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-      const randomInRange = (min: number, max: number) => {
-        return Math.random() * (max - min) + min;
-      };
-
-      const interval = setInterval(() => {
-        const timeLeft = animationEnd - Date.now();
-
-        if (timeLeft <= 0) {
-          clearInterval(interval);
-          return;
-        }
-
-        const particleCount = 50 * (timeLeft / duration);
-
+      // Fire confetti from across the top of the screen
+      for (let i = 0.1; i <= 0.9; i += 0.2) {
         confetti({
           ...defaults,
-          particleCount,
-          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          particleCount: 50,
+          origin: { x: i, y: 0 }, // y: 0 means top of the page
         });
-        confetti({
-          ...defaults,
-          particleCount,
-          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-        });
-      }, 250);
-
-      return () => clearInterval(interval);
+      }
     }
   }, [gameState.confettiActive]);
 
   useEffect(() => {
     if (gameState.gameOver && gameId) {
       // Save game results when game is over
-      completeGame({
+      saveGameScore({
         gameId,
-        isValid: false,
+        score: gameState.score,
       }).catch((error) => {
         console.error("Failed to save game results:", error);
       });
     }
-  }, [gameState.gameOver, gameId, gameState.score, userAnswers, completeGame]);
+  }, [gameState.gameOver, gameId, gameState.score, saveGameScore]);
 
   const resetGameState = () => {
     // Reset game state
@@ -284,7 +265,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
 
     setTimeout(() => {
       if (
-        gameState.currentIndex ===
+        gameState.currentIndex >=
         (snippets.length > 0 ? snippets.length - 1 : LEVEL_ROUNDS[gameState.level] - 1)
       ) {
         setGameState((prev) => ({ ...prev, gameOver: true }));
@@ -299,8 +280,8 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     }, 1500);
   };
 
-  const handleVote = (isHot: boolean) => {
-    if (!isHot && glitchInstanceRef.current) {
+  const handleVote = (isCorrect: boolean) => {
+    if (!isCorrect && glitchInstanceRef.current) {
       glitchInstanceRef.current.startGlitch();
       setTimeout(() => {
         if (glitchInstanceRef.current) {
@@ -311,25 +292,27 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
 
     if (snippets.length <= gameState.currentIndex) {
       console.error("No snippet available for current index");
+      // End the game when there are no more snippets available
+      setGameState((prev) => ({ ...prev, gameOver: true }));
       return;
     }
 
     const currentSnippet = snippets[gameState.currentIndex];
-    const isCorrect = isHot === (currentSnippet as any).isValid;
+    const isAnswerCorrect = isCorrect === (currentSnippet as any).isValid;
 
     // Store user's answer
-    setUserAnswers((prev) => [...prev, isHot]);
+    setUserAnswers((prev) => [...prev, isCorrect]);
 
     setGameState((prev) => ({
       ...prev,
       feedback: {
-        message: isCorrect
+        message: isAnswerCorrect
           ? "Great job! You've got a keen eye for code!"
           : "Oops! That wasn't quite right. Keep practicing!",
-        isCorrect,
+        isCorrect: isAnswerCorrect,
       },
-      score: isCorrect ? prev.score + 1 : prev.score,
-      showPartyEmoji: isCorrect && isHot,
+      score: isAnswerCorrect ? prev.score + 1 : prev.score,
+      showPartyEmoji: isAnswerCorrect && isCorrect,
     }));
 
     setTimeout(() => {
@@ -337,7 +320,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         setGameState((prev) => ({
           ...prev,
           gameOver: true,
-          confettiActive: prev.score + (isCorrect ? 1 : 0) === snippets.length,
+          confettiActive: prev.score + (isAnswerCorrect ? 1 : 0) === snippets.length,
         }));
       } else {
         setGameState((prev) => ({
@@ -355,7 +338,10 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     // Store user's answer as null (skipped) when skipping
     setUserAnswers((prev) => [...prev, false]); // Treating skip as "reject" for simplicity
 
-    if (gameState.currentIndex >= snippets.length - 1) {
+    if (
+      gameState.currentIndex >= snippets.length - 1 ||
+      gameState.currentIndex >= snippets.length
+    ) {
       setGameState((prev) => ({ ...prev, gameOver: true }));
     } else {
       setGameState((prev) => ({
@@ -421,9 +407,9 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   const confirmEndGame = () => {
     // Save the current game state before ending
     if (gameId) {
-      completeGame({
+      saveGameScore({
         gameId,
-        isValid: false,
+        score: gameState.score,
       }).catch((error) => {
         console.error("Failed to save game results:", error);
       });
@@ -454,9 +440,9 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
-        handleVote(true); // Merge on Enter/Return
+        handleVote(true); // Merge (isCorrect) on Enter/Return
       } else if (e.key === "Escape") {
-        handleVote(false); // Reject on Escape
+        handleVote(false); // Reject (isWrong) on Escape
       } else if (e.key === "s" || e.key === "S") {
         handleSkip(); // Skip on 's' or 'S'
       }
@@ -494,9 +480,30 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
           level={gameState.level}
           volume={1}
           onPlayAgain={resetGameState}
-          isDarkMode={isDarkMode}
           userId={userId || ("" as Id<"users">)}
           playerName={playerName}
+          isDarkMode={isDarkMode}
+          maxRounds={snippets.length}
+        />
+      </>
+    );
+  }
+
+  // Show game result if there are no snippets or if we've gone through all snippets
+  if (snippets.length === 0 || gameState.currentIndex >= snippets.length) {
+    return (
+      <>
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <GameResult
+          score={gameState.score}
+          language={gameState.language || "typescript"}
+          level={gameState.level}
+          volume={1}
+          onPlayAgain={resetGameState}
+          userId={userId || ("" as Id<"users">)}
+          playerName={playerName}
+          isDarkMode={isDarkMode}
+          maxRounds={snippets.length}
         />
       </>
     );
@@ -529,13 +536,13 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
           Score: {gameState.score} | Remaining: {snippets.length - (gameState.currentIndex + 1)}
         </div>
         <button
-          onClick={() => handleVote(true)}
+          onClick={() => handleVote(true)} // isCorrect=true for correct snippets
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
           Merge <span className="text-xs ml-1">[↵ Enter]</span>
         </button>
         <button
           ref={rejectButtonRef}
-          onClick={() => handleVote(false)}
+          onClick={() => handleVote(false)} // isCorrect=false for wrong snippets
           className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
           Reject <span className="text-xs ml-1">[Esc]</span>
         </button>
