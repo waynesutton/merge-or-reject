@@ -452,6 +452,27 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     }));
   };
 
+  // Add this useEffect to listen for keyboard events
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        handleVote(true); // Merge on Enter/Return
+      } else if (e.key === "Escape") {
+        handleVote(false); // Reject on Escape
+      } else if (e.key === "s" || e.key === "S") {
+        handleSkip(); // Skip on 's' or 'S'
+      }
+    };
+
+    // Add the event listener
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Clean up the event listener on component unmount
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleVote, handleSkip]);
+
   if (!gameState.gameStarted) {
     return (
       <>
@@ -484,7 +505,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-24">
       <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
       {gameState.language && (
         <h2
@@ -501,25 +522,25 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       {snippets.length > gameState.currentIndex && (
         <CodeDisplay code={snippets[gameState.currentIndex].code} isDarkMode={isDarkMode} />
       )}
-      <div className="flex justify-center space-x-4 items-center">
+      <div className="fixed bottom-0 left-0 w-full py-4 px-6 flex justify-center space-x-4 items-center bg-white dark:bg-[#121212] shadow-md">
         <div className={`mr-4 font-medium ${isDarkMode ? "text-white" : "text-gray-800"}`}>
           Score: {gameState.score} | Remaining: {snippets.length - (gameState.currentIndex + 1)}
         </div>
         <button
           onClick={() => handleVote(true)}
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-          Merge
+          Merge <span className="text-xs ml-1">[↵ Enter]</span>
         </button>
         <button
           ref={rejectButtonRef}
           onClick={() => handleVote(false)}
           className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-          Reject
+          Reject <span className="text-xs ml-1">[Esc]</span>
         </button>
         <button
           onClick={handleSkip}
           className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-          Skip
+          Skip <span className="text-xs ml-1">[S]</span>
         </button>
         <button
           onClick={handleEndGame}

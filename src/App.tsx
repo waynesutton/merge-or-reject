@@ -46,7 +46,7 @@ function App() {
       appearance={{
         variables: {
           colorPrimary: isDarkMode ? "#00FF94" : "#00CC77",
-          colorBackground: isDarkMode ? "#000000" : "#FFFFFF",
+          colorBackground: isDarkMode ? "#0f172a" : "#FFFFFF",
           colorText: isDarkMode ? "#FFFFFF" : "#000000",
         },
       }}>
@@ -69,7 +69,12 @@ function App() {
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
-      <div className={`min-h-screen ${isDarkMode ? "bg-black text-white" : "bg-white text-black"}`}>
+      <div
+        className={`min-h-screen ${
+          isDarkMode
+            ? "bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-[#000000] to-[#1A1A1A] text-white"
+            : "bg-white text-black"
+        }`}>
         <main className="container mx-auto px-4 py-8">
           <Routes>
             <Route
@@ -108,8 +113,8 @@ function App() {
             />
           </Routes>
         </main>
-        <Footer isDarkMode={isDarkMode} />
       </div>
+      <Footer isDarkMode={isDarkMode} />
     </div>
   );
 }

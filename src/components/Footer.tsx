@@ -8,7 +8,7 @@ interface FooterProps {
 const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
   return (
     <footer
-      className={`${isDarkMode ? "bg-[#1A1A1A] border-gray-800" : "bg-white border-gray-200"} border-t`}>
+      className={`${isDarkMode ? "bg-[#1A1A1A] border-[#1a1a1a]" : "bg-white border-gray-200"} border-t`}>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo and Description */}
@@ -81,7 +81,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
         </div>
 
         <div
-          className={`mt-8 pt-8 ${isDarkMode ? "border-gray-800" : "border-gray-200"} border-t flex flex-col md:flex-row justify-between items-center text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+          className={`mt-8 pt-8 ${isDarkMode ? "border-[#1A1A1A]" : "border-gray-900"} border-t flex flex-col md:flex-row justify-between items-center text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
           <div className="mb-4 md:mb-0">
             <a href="https://github.com/waynesutton/mergeorreject">Open Source</a> powered by{" "}
             <a href="https://convex.dev" className="hover:text-[#00FF94] transition-colors">
