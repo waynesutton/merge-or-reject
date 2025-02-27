@@ -7,7 +7,7 @@ This document explains how OpenAI integration works in this code review game, in
 - **OpenAI Dependencies**:
 
   - Required dependency in `package.json`: `"openai": "^4.28.0"`
-  - Environment variable: `VITE_OPENAI_API_KEY` must be set (as shown in SETUP.md)
+  - Environment variable: `VITE_OPENAI_API_KEY` must be set (as shown in SETUP.Md)
 
 - **Core Integration Files**:
   - `convex/snippets.ts`: Contains the AI snippet generation logic
