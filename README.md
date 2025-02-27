@@ -6,15 +6,15 @@ Merge or Reject is an open source game where developers test their code review s
 
 ## ✅ To-Do List
 
-- [ ] Future: TBD add code explanation box during game play or after game results.
-- [ ] Add AI and test features with info from addAI.md
 - [ ] confirm gameplay.md is correct
-- [ ] fix add and edit snippets input box
 - [ ] Test algorithms for merge and reject
-- [ ✅] add current program language to show at the top of the current game
+- [ ] Add AI and test features with info from addAI.md
+- [ ] fix add and edit snippets input box
+- [✅] add current program language to show at the top of the current game
 - [✅] add analytics to dashboard
 - [✅] fix clerk admin logout
 - [✅] Add support link that goes to discord
+- [✅] Future: TBD add code explanation box during game play or after game results.
 - [ ] Add more snippets for programming languages
 - [ ] Change the cat to a GIF or video of gameplay
 - [ ] Add a short URL link to Convex in the footer

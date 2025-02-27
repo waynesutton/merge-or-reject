@@ -88,6 +88,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       _id: Id<"codeSnippets">;
       code: string;
       language: string;
+      explanation?: string;
     }>
   >([]);
   const [timeLimit, setTimeLimit] = useState<number>(0);
@@ -354,10 +355,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     // Store user's answer as null (skipped) when skipping
     setUserAnswers((prev) => [...prev, false]); // Treating skip as "reject" for simplicity
 
-    if (
-      gameState.currentIndex ===
-      (snippets.length > 0 ? snippets.length - 1 : LEVEL_ROUNDS[gameState.level] - 1)
-    ) {
+    if (gameState.currentIndex >= snippets.length - 1) {
       setGameState((prev) => ({ ...prev, gameOver: true }));
     } else {
       setGameState((prev) => ({
@@ -505,7 +503,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   }
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-8 pb-24 pt-5">
       <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
       {gameState.language && (
         <h2
@@ -520,7 +518,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         isDarkMode={isDarkMode}
       />
       {snippets.length > gameState.currentIndex && (
-        <CodeDisplay code={snippets[gameState.currentIndex].code} isDarkMode={isDarkMode} />
+        <CodeDisplay
+          code={snippets[gameState.currentIndex].code}
+          explanation={snippets[gameState.currentIndex].explanation}
+          isDarkMode={isDarkMode}
+        />
       )}
       <div className="fixed bottom-0 left-0 w-full py-4 px-6 flex justify-center space-x-4 items-center bg-white dark:bg-[#121212] shadow-md">
         <div className={`mr-4 font-medium ${isDarkMode ? "text-white" : "text-gray-800"}`}>
@@ -586,18 +588,16 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       {gameState.showWarning && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-              Game in Progress
-            </h3>
+            <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">End Game?</h3>
             <p className="mb-6 text-gray-700 dark:text-gray-300">
-              You have an active game in progress. Are you sure you want to leave? Your progress
-              will be lost.
+              Are you sure you want to end the current game? Your progress will be saved, but you
+              won't be able to continue.
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={closeWarning}
                 className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">
-                Stay
+                Cancel
               </button>
               <button
                 onClick={() => {
@@ -605,7 +605,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
                   navigate("/");
                 }}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-                Leave Anyway
+                End Game
               </button>
             </div>
           </div>

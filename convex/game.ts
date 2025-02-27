@@ -19,6 +19,7 @@ export const startGame = mutation({
         _id: v.id("codeSnippets"),
         code: v.string(),
         language: v.string(),
+        explanation: v.string(),
       })
     ),
     timeLimit: v.number(),
@@ -65,6 +66,7 @@ export const startGame = mutation({
         _id: s._id,
         code: s.code,
         language: s.language,
+        explanation: s.explanation,
       })),
       timeLimit: settings.timeLimits[difficulty],
     };
