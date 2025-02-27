@@ -1,5 +1,5 @@
 import React from "react";
-import { Code2, Braces, FileCode, Terminal, Database } from "lucide-react";
+import { Code2, Braces, FileCode, Terminal, Database, Coffee, Hash, Settings } from "lucide-react";
 import { Language, LANGUAGES } from "../types";
 
 interface LanguageSelectorProps {
@@ -23,11 +23,15 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
       case "python":
         return <Terminal className="w-12 h-12 text-[#3776AB]" />;
       case "rust":
-        return <Code2 className="w-12 h-12 text-[#000000] dark:text-[#FFFFFF]" />;
+        return <Settings className="w-12 h-12 text-[#000000] dark:text-[#FFFFFF]" />;
       case "go":
         return <Code2 className="w-12 h-12 text-[#00ADD8]" />;
       case "sql":
         return <Database className="w-12 h-12 text-[#4479A1]" />;
+      case "java":
+        return <Coffee className="w-12 h-12 text-[#007396]" />;
+      case "cpp":
+        return <Hash className="w-12 h-12 text-[#00599C]" />;
       default:
         return <Code2 className="w-12 h-12" />;
     }

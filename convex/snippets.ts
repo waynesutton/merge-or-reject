@@ -70,14 +70,14 @@ export const _generateAISnippets = internalAction({
     - Difficulty level: ${args.difficulty}
     - Each snippet should be 5-15 lines
     - Include explanation of why each snippet is valid/invalid
-    - Add relevant tags for each snippet
+   
     
     Format each snippet as JSON:
     {
       "code": "code here",
       "isValid": boolean,
       "explanation": "explanation here",
-      "tags": ["tag1", "tag2"]
+      
     }`;
 
     const response = await openai.chat.completions.create({

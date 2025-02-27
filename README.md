@@ -9,6 +9,7 @@ Merge or Reject is an open source game where developers test their code review s
 - [ ] confirm gameplay.md is correct
 - [ ] Test algorithms for merge and reject
 - [ ] Add AI and test features with info from addAI.md
+- [ ] update AI system prompt
 - [ ] fix add and edit snippets input box
 - [ ] Add more snippets for programming languages
 - [ ] Change the cat to a GIF or video of gameplay
