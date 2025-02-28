@@ -6,12 +6,16 @@ import { ArrowLeft, CheckCircle, XCircle } from "lucide-react";
 import Header from "../Header";
 import Footer from "../Footer";
 
+interface RecapParams extends Record<string, string | undefined> {
+  slugId: string;
+}
+
 const RecapPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slugId } = useParams<RecapParams>();
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // Default to dark mode
 
-  // Fetch game recap data if id is provided
-  const gameRecap = useQuery(api.games.getGameRecap, id ? { gameId: id } : "skip");
+  // Fetch game recap data if slugId is provided
+  const gameRecap = useQuery(api.games.getGameRecap, slugId ? { gameId: slugId } : "skip");
 
   useEffect(() => {
     const darkModeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -25,7 +29,7 @@ const RecapPage: React.FC = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  if (!id || !gameRecap) {
+  if (!slugId || !gameRecap) {
     return (
       <div className="bg-[#000000] text-white min-h-screen">
         <Header isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />
@@ -110,13 +114,13 @@ const RecapPage: React.FC = () => {
                 </p>
 
                 <div className={`mt-4 p-3 rounded ${isDarkMode ? "bg-gray-800" : "bg-gray-100"}`}>
-                  <p
+                  <div
                     className={`font-medium mb-1 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                     Explanation:
-                  </p>
-                  <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+                  </div>
+                  <div className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
                     {snippet.explanation}
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>

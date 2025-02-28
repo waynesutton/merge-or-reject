@@ -108,7 +108,7 @@ function App() {
                 />
               }
             />
-            <Route path="/recap/:id" element={<RecapPage />} />
+            <Route path="/recap/:slugId" element={<RecapPage />} />
             <Route
               path="*"
               element={<NotFoundPage isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />}

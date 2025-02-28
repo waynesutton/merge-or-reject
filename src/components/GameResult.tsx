@@ -125,7 +125,7 @@ const GameResult: React.FC<GameResultProps> = ({
         {gameId && (
           <div className="mt-4">
             <Link
-              to={recapUrl || `/recap/${gameId.toString()}`}
+              to={`/${recapUrl}`}
               className="flex items-center justify-center space-x-2 px-4 py-3 bg-[#2A65F1] text-white rounded-lg hover:bg-[#2055D0] transition-colors">
               <BookOpen className="w-5 h-5" />
               <span>See what you got right or wrong</span>

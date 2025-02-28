@@ -21,6 +21,8 @@ export default defineSchema({
       medium: v.number(),
       hard: v.number(),
     }),
+    minSnippetsPerVolume: v.number(),
+    maxSnippetsPerVolume: v.number(),
     aiGeneration: v.object({
       enabled: v.boolean(),
       validRatio: v.number(),

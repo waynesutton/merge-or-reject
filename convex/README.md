@@ -1,90 +1,143 @@
-# Welcome to your Convex functions directory!
+# Convex Backend for Merge or Reject
 
-Write your Convex functions here.
-See https://docs.convex.dev/functions for more.
+This directory contains all the Convex serverless functions for the Merge or Reject game. Below is a guide to the structure and best practices.
 
-A query function that takes two arguments looks like:
+## 📁 Directory Structure
+
+```
+.
+├── schema.ts      # Database schema and table definitions
+├── game.ts        # Core game logic and session management
+├── games.ts       # Game creation and retrieval functions
+├── scores.ts      # Score tracking and leaderboard functions
+├── users.ts       # Anonymous user management
+├── snippets.ts    # Code snippet management
+├── admin.ts       # Admin dashboard functions
+├── settings.ts    # Game configuration
+├── init.ts        # Initial setup and seeding
+├── auth.ts        # Authentication logic
+└── clerk.ts       # Clerk webhook integration
+```
+
+## 🔑 Key Concepts
+
+### Database Schema
+
+The game uses several tables defined in `schema.ts`:
 
 ```ts
-// functions.js
+// Example schema structure
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  users: defineTable({
+    name: v.string(),
+    // ... other fields
+  }),
+  games: defineTable({
+    userId: v.id("users"),
+    language: v.string(),
+    difficulty: v.string(),
+    // ... other fields
+  }).index("by_user", ["userId"]),
+  // ... other tables
+});
+```
+
+### Function Types
+
+1. **Queries** - Read-only operations:
+
+```ts
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const myQueryFunction = query({
-  // Validators for arguments.
+export const getLeaderboard = query({
   args: {
-    first: v.number(),
-    second: v.string(),
+    language: v.string(),
+    limit: v.number(),
   },
-
-  // Function implementation.
   handler: async (ctx, args) => {
-    // Read the database as many times as you need here.
-    // See https://docs.convex.dev/database/reading-data.
-    const documents = await ctx.db.query("tablename").collect();
-
-    // Arguments passed from the client are properties of the args object.
-    console.log(args.first, args.second);
-
-    // Write arbitrary JavaScript here: filter, aggregate, build derived data,
-    // remove non-public properties, or create new objects.
-    return documents;
+    // Implementation
   },
 });
 ```
 
-Using this query function in a React component looks like:
+2. **Mutations** - Write operations:
 
 ```ts
-const data = useQuery(api.functions.myQueryFunction, {
-  first: 10,
-  second: "hello",
-});
-```
-
-A mutation function looks like:
-
-```ts
-// functions.js
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-export const myMutationFunction = mutation({
-  // Validators for arguments.
+export const createGame = mutation({
   args: {
-    first: v.string(),
-    second: v.string(),
+    language: v.string(),
+    difficulty: v.string(),
   },
-
-  // Function implementation.
   handler: async (ctx, args) => {
-    // Insert or modify documents in the database here.
-    // Mutations can also read from the database like queries.
-    // See https://docs.convex.dev/database/writing-data.
-    const message = { body: args.first, author: args.second };
-    const id = await ctx.db.insert("messages", message);
-
-    // Optionally, return a value from your mutation.
-    return await ctx.db.get(id);
+    // Implementation
   },
 });
 ```
 
-Using this mutation function in a React component looks like:
+3. **Actions** - External API calls:
 
 ```ts
-const mutation = useMutation(api.functions.myMutationFunction);
-function handleButtonPress() {
-  // fire and forget, the most common way to use mutations
-  mutation({ first: "Hello!", second: "me" });
-  // OR
-  // use the result once the mutation has completed
-  mutation({ first: "Hello!", second: "me" }).then((result) =>
-    console.log(result),
-  );
+import { action } from "./_generated/server";
+import { v } from "convex/values";
+
+export const generateSnippet = action({
+  args: {
+    language: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // OpenAI API call implementation
+  },
+});
+```
+
+## 🔒 Authentication
+
+We use Clerk for admin authentication. Regular users are anonymous:
+
+```ts
+// Example auth check
+const isAdmin = await ctx.auth.getUserIdentity();
+if (!isAdmin) {
+  throw new Error("Admin access required");
 }
 ```
 
-Use the Convex CLI to push your functions to a deployment. See everything
-the Convex CLI can do by running `npx convex -h` in your project root
-directory. To learn more, launch the docs with `npx convex docs`.
+## 📊 Database Queries
+
+Common query patterns:
+
+```ts
+// Get user's games
+const games = await ctx.db
+  .query("games")
+  .withIndex("by_user", (q) => q.eq("userId", userId))
+  .collect();
+
+// Get recent scores
+const scores = await ctx.db.query("scores").order("desc").take(10);
+```
+
+## 🚀 Development
+
+1. Make changes to functions
+2. Test locally with `npx convex dev`
+3. Deploy with `npx convex deploy`
+
+## 📝 Best Practices
+
+1. Always validate input with proper validators
+2. Use appropriate indexes for queries
+3. Keep functions focused and single-purpose
+4. Handle errors gracefully
+5. Use internal functions for sensitive operations
+6. Document complex logic
+7. Follow TypeScript best practices
+
+For more details, see the [Convex documentation](https://docs.convex.dev/).

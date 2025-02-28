@@ -85,7 +85,9 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
           className={`mt-8 pt-8 ${isDarkMode ? "border-[#1A1A1A]" : "border-gray-900"} border-t flex flex-col md:flex-row justify-between items-center text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
           <div className="mb-4 md:mb-0">
             <a href="https://github.com/waynesutton/mergeorreject">Open Source</a> powered by{" "}
-            <a href="https://convex.dev" className="hover:text-[#00FF94] transition-colors">
+            <a
+              href="https://convex.link/playmerge"
+              className="hover:text-[#00FF94] transition-colors">
               Convex
             </a>
           </div>
@@ -95,7 +97,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
 
       {showConvexBox && (
         <div className="fixed bottom-4 right-4 bg-black rounded-lg shadow-lg overflow-hidden">
-          <a href="https://convex.dev" className="block py-2.5 px-7 flex items-center">
+          <a href="https://convex.link/playmerge" className="block py-2.5 px-7 flex items-center">
             <span className="text-white mr-2">Powered by</span>
             <img src="/convex-logo-white-transparent.svg" alt="Convex" className="w-[100px]" />
             <button

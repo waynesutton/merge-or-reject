@@ -250,9 +250,16 @@ export const saveGameScore = mutation({
     const game = await ctx.db.get(args.gameId);
     if (!game) throw new Error("Game not found");
 
-    // Update game with the final score
+    // Generate a friendly slug using language, difficulty and a random number
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+    const difficulty = game.level === 1 ? "easy" : game.level === 2 ? "medium" : "hard";
+    const slugId = `${game.language}-${difficulty}-${randomNum}-${args.gameId.slice(-6)}`;
+
+    // Update game with the final score and slugId
     await ctx.db.patch(args.gameId, {
       score: args.score,
+      recap: `recap/${slugId}`,
+      slugId: slugId,
     });
 
     return null;

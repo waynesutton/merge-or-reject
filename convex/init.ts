@@ -13,14 +13,16 @@ export const initializeSettings = mutation({
       await ctx.db.insert("gameSettings", {
         timeLimits: {
           easy: 120,
-          medium: 90,
-          hard: 60,
+          medium: 100,
+          hard: 30,
         },
         snippetsPerGame: {
           easy: 3,
           medium: 5,
           hard: 7,
         },
+        minSnippetsPerVolume: 10,
+        maxSnippetsPerVolume: 50,
         aiGeneration: {
           enabled: true,
           validRatio: 0.5,

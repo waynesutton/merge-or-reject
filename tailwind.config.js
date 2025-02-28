@@ -4,6 +4,11 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      colors: {
+        red: {
+          600: "#EE342E",
+        },
+      },
       fontFamily: {
         sans: ["Inter", "Inter Placeholder", "sans-serif"],
         mono: ["JetBrains Mono", "Menlo", "Monaco", "Courier New", "monospace"],

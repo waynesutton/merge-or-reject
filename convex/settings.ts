@@ -3,12 +3,44 @@ import { v } from "convex/values";
 import { Language } from "../src/types";
 import { requireAdmin } from "./auth";
 
-// Initialize settings if they don't exist
-export const initializeSettings = mutation({
+// Migrate existing settings to include new required fields
+export const migrateSettings = mutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
+    // Get all existing settings
+    const settings = await ctx.db.query("gameSettings").collect();
+
+    // Update each document that's missing the required fields
+    for (const setting of settings) {
+      if (!setting.minSnippetsPerVolume || !setting.maxSnippetsPerVolume) {
+        await ctx.db.patch(setting._id, {
+          minSnippetsPerVolume: 10,
+          maxSnippetsPerVolume: 50,
+        });
+      }
+    }
+    return null;
+  },
+});
+
+// Initialize settings if they don't exist
+export const initializeSettings = mutation({
+  args: {
+    reset: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
     console.log("Starting settings initialization");
+
+    // If reset is true, delete all existing settings
+    if (args.reset) {
+      console.log("Resetting settings");
+      const settings = await ctx.db.query("gameSettings").collect();
+      for (const setting of settings) {
+        await ctx.db.delete(setting._id);
+      }
+    }
 
     const settings = await ctx.db.query("gameSettings").first();
     if (!settings) {
@@ -16,14 +48,16 @@ export const initializeSettings = mutation({
       await ctx.db.insert("gameSettings", {
         timeLimits: {
           easy: 120,
-          medium: 90,
-          hard: 60,
+          medium: 100,
+          hard: 30,
         },
         snippetsPerGame: {
           easy: 3,
           medium: 5,
           hard: 7,
         },
+        minSnippetsPerVolume: 10,
+        maxSnippetsPerVolume: 50,
         aiGeneration: {
           enabled: true,
           validRatio: 0.5,
@@ -33,7 +67,13 @@ export const initializeSettings = mutation({
       });
       console.log("Default settings created");
     } else {
-      console.log("Settings already exist");
+      console.log("Settings exist, ensuring required fields");
+      // Always update the required fields
+      await ctx.db.patch(settings._id, {
+        minSnippetsPerVolume: settings.minSnippetsPerVolume ?? 10,
+        maxSnippetsPerVolume: settings.maxSnippetsPerVolume ?? 50,
+      });
+      console.log("Settings updated with required fields");
     }
     return null;
   },
@@ -54,6 +94,8 @@ export const getSettings = query({
         medium: v.number(),
         hard: v.number(),
       }),
+      minSnippetsPerVolume: v.number(),
+      maxSnippetsPerVolume: v.number(),
       aiGeneration: v.object({
         enabled: v.boolean(),
         validRatio: v.number(),
@@ -84,14 +126,16 @@ export const getSettings = query({
       settings: {
         timeLimits: {
           easy: 120,
-          medium: 90,
-          hard: 60,
+          medium: 100,
+          hard: 30,
         },
         snippetsPerGame: {
           easy: 3,
           medium: 5,
           hard: 7,
         },
+        minSnippetsPerVolume: 10,
+        maxSnippetsPerVolume: 50,
         aiGeneration: {
           enabled: true,
           validRatio: 0.5,
@@ -127,6 +171,8 @@ export const getSettings = query({
       settings: {
         timeLimits: settings.timeLimits,
         snippetsPerGame: settings.snippetsPerGame,
+        minSnippetsPerVolume: settings.minSnippetsPerVolume ?? 10,
+        maxSnippetsPerVolume: settings.maxSnippetsPerVolume ?? 50,
         aiGeneration: settings.aiGeneration,
       },
       volumes: mappedVolumes,
@@ -151,6 +197,8 @@ export const updateSettings = mutation({
         hard: v.number(),
       })
     ),
+    minSnippetsPerVolume: v.optional(v.number()),
+    maxSnippetsPerVolume: v.optional(v.number()),
     aiGeneration: v.optional(
       v.object({
         enabled: v.boolean(),
@@ -171,6 +219,10 @@ export const updateSettings = mutation({
       const updates: any = {};
       if (args.timeLimits) updates.timeLimits = args.timeLimits;
       if (args.snippetsPerGame) updates.snippetsPerGame = args.snippetsPerGame;
+      if (args.minSnippetsPerVolume !== undefined)
+        updates.minSnippetsPerVolume = args.minSnippetsPerVolume;
+      if (args.maxSnippetsPerVolume !== undefined)
+        updates.maxSnippetsPerVolume = args.maxSnippetsPerVolume;
       if (args.aiGeneration) updates.aiGeneration = args.aiGeneration;
 
       await ctx.db.patch(settings._id, updates);
@@ -178,14 +230,16 @@ export const updateSettings = mutation({
       await ctx.db.insert("gameSettings", {
         timeLimits: args.timeLimits || {
           easy: 120,
-          medium: 90,
-          hard: 60,
+          medium: 100,
+          hard: 30,
         },
         snippetsPerGame: args.snippetsPerGame || {
           easy: 3,
           medium: 5,
           hard: 7,
         },
+        minSnippetsPerVolume: args.minSnippetsPerVolume || 10,
+        maxSnippetsPerVolume: args.maxSnippetsPerVolume || 50,
         aiGeneration: args.aiGeneration || {
           enabled: true,
           validRatio: 0.5,
@@ -232,5 +286,45 @@ export const createNewVolume = mutation({
         icon: args.icon,
       });
     }
+  },
+});
+
+// Reset settings to defaults
+export const resetSettings = mutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    console.log("Starting settings reset");
+
+    // Delete all existing settings
+    const settings = await ctx.db.query("gameSettings").collect();
+    for (const setting of settings) {
+      await ctx.db.delete(setting._id);
+    }
+
+    // Create new settings with all required fields
+    await ctx.db.insert("gameSettings", {
+      timeLimits: {
+        easy: 120,
+        medium: 100,
+        hard: 30,
+      },
+      snippetsPerGame: {
+        easy: 3,
+        medium: 5,
+        hard: 7,
+      },
+      minSnippetsPerVolume: 10,
+      maxSnippetsPerVolume: 50,
+      aiGeneration: {
+        enabled: true,
+        validRatio: 0.5,
+        maxPerRequest: 5,
+        minSnippetsBeforeGeneration: 5,
+      },
+    });
+
+    console.log("Settings reset complete");
+    return null;
   },
 });

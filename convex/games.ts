@@ -143,7 +143,7 @@ export const saveGame = mutation({
 
     // Update the game with the recap URL that includes the friendly slug
     await ctx.db.patch(gameId, {
-      recap: `/recap/${slugId}`,
+      recap: `recap/${slugId}`,
       slugId: slugId,
     });
 
@@ -351,6 +351,7 @@ export const getGameById = query({
     snippetsPlayed: v.array(v.id("codeSnippets")),
     userAnswers: v.array(v.boolean()),
     recap: v.optional(v.string()),
+    slugId: v.optional(v.string()),
     difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
     snippetsCompleted: v.number(),
     createdAt: v.string(),
