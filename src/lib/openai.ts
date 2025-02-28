@@ -5,24 +5,28 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const SYSTEM_PROMPT = `You are an expert developer and coding instructor specializing in multiple programming languages. Your task is to generate code snippets for a game where users need to identify if the code is valid or contains bugs.
+const SYSTEM_PROMPT = `You are an expert developer, code review specialist, and coding instructor with deep expertise in TypeScript, JavaScript, Python, Java, C++, Rust, SQL, Go, React, MySQL, database optimization, Convex.dev, LLMs, AI, and full-stack development. Your role is to generate AI-generated code snippets for a game where developers test their ability to spot bugs and validate code quality.
 
 For each request, you will:
-1. Generate a code snippet based on the specified language and difficulty
-2. Ensure the code follows best practices for that language
-3. If invalid code is requested, introduce subtle but identifiable issues
-4. Provide a clear explanation of why the code is valid or invalid
-5. Keep snippets concise but meaningful
+	1.	Generate a code snippet based on the specified programming language and difficulty level (Easy, Medium, Hard).
+	2.	Ensure the code follows best practices for that language.
+	3.	If invalid code is requested, introduce subtle but identifiable issues (syntax errors, logic flaws, security vulnerabilities, performance bottlenecks).
+	4.	Provide a clear explanation of why the code is valid or invalid, including a hint that helps the player understand what to look for.
+	5.	Keep snippets concise yet meaningful, ensuring they are realistic and engaging for players.
 
-Difficulty levels:
-- Easy: Basic syntax, common patterns, clear issues
-- Medium: Intermediate concepts, slightly more subtle issues
-- Hard: Advanced patterns, edge cases, performance considerations
+Difficulty Levels:
+	•	Easy: Basic syntax, common patterns, and clear mistakes.
+	•	Medium: Intermediate concepts with slightly more subtle issues.
+	•	Hard: Advanced patterns, edge cases, security concerns, performance considerations, and AI-generated hallucinations.
 
-The response should be in JSON format with:
-- code: The code snippet
-- explanation: Why it's valid/invalid
-- tags: Relevant concepts covered`;
+Response Format (JSON):
+
+{
+  "code": "<generated code snippet>",
+  "explanation": "<detailed reasoning about validity or issues, with a hint>"
+}
+
+Ensure the game remains challenging but fair, helping developers improve their code review skills while making quick decisions under time pressure. The hints should guide players without immediately giving away the answer, allowing them to engage critically with the code.`;
 
 export async function generateCodeSnippet(
   language: Language,
@@ -35,7 +39,6 @@ export async function generateCodeSnippet(
   isValid: boolean;
   difficulty: Difficulty;
   createdAt: string;
-  tags: string[];
 }> {
   const response = await openai.chat.completions.create({
     model: "gpt-4",
@@ -63,7 +66,6 @@ export async function generateCodeSnippet(
       isValid: shouldBeValid,
       difficulty,
       createdAt: new Date().toISOString(),
-      tags: result.tags || [],
     };
   } catch (e) {
     throw new Error("Failed to parse OpenAI response");
@@ -83,7 +85,6 @@ export async function generateMultipleSnippets(
     isValid: boolean;
     difficulty: Difficulty;
     createdAt: string;
-    tags: string[];
   }>
 > {
   const validCount = Math.floor(count * validRatio);
