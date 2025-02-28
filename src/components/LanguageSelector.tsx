@@ -104,7 +104,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
       </p>
       <p className={`mt-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"} mb-8`}>
         Select your language, review code snippets, and Merge (correct) or Reject (broken).<br></br>{" "}
-        A perfect score = confetti!
+        Test your vibe coding skills against AI.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {languages.map(({ key, name }) => (

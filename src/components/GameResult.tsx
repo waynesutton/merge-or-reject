@@ -43,21 +43,24 @@ const GameResult: React.FC<GameResultProps> = ({
   // Get the recap URL directly from the game
   const recapUrl = game?.recap;
 
-  const shareText = `I scored ${score}/${maxRounds} on Merge or Reject playing ${language} (Level ${level}, Vol ${volume})! Can you beat my score? 🚀 #coding #MergeOrReject`;
+  const shareText = `I scored ${score}/${maxRounds} on Merge playing ${language} (Level ${level}, Vol ${volume})! Can you beat my score? `;
   const shareUrl = window.location.origin;
 
   const shareToTwitter = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    const fullUrl = recapUrl ? `${shareUrl}/${recapUrl}` : shareUrl;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(fullUrl)}`;
     window.open(url, "_blank");
   };
 
   const shareToLinkedIn = () => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(shareText)}`;
+    const fullUrl = recapUrl ? `${shareUrl}/${recapUrl}` : shareUrl;
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(fullUrl)}&summary=${encodeURIComponent(shareText)}`;
     window.open(url, "_blank");
   };
 
   const shareToBluesky = () => {
-    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+    const fullUrl = recapUrl ? `${shareUrl}/${recapUrl}` : shareUrl;
+    navigator.clipboard.writeText(`${shareText}\n${fullUrl}`);
     alert("Share text copied to clipboard! You can now paste it in your Bluesky post.");
   };
 
@@ -128,7 +131,7 @@ const GameResult: React.FC<GameResultProps> = ({
               to={`/${recapUrl}`}
               className="flex items-center justify-center space-x-2 px-4 py-3 bg-[#2A65F1] text-white rounded-lg hover:bg-[#2055D0] transition-colors">
               <BookOpen className="w-5 h-5" />
-              <span>See what you got right or wrong</span>
+              <span>See your grade.</span>
             </Link>
           </div>
         )}
