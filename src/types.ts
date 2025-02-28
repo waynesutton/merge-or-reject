@@ -8,7 +8,8 @@ export type Language =
   | "cpp"
   | "rust"
   | "go"
-  | "sql";
+  | "sql"
+  | "react";
 
 export const LANGUAGES: Record<Language, string> = {
   typescript: "TypeScript",
@@ -19,6 +20,7 @@ export const LANGUAGES: Record<Language, string> = {
   rust: "Rust",
   go: "Go",
   sql: "SQL",
+  react: "React",
 };
 
 export type Level = 1 | 2 | 3;

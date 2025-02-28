@@ -36,6 +36,8 @@ export default defineSchema({
     snippetCount: v.number(),
     aiGeneratedCount: v.number(),
     lastAiGeneration: v.string(),
+    status: v.optional(v.union(v.literal("active"), v.literal("paused"), v.literal("removed"))),
+    icon: v.optional(v.string()),
   }).index("by_language", ["language"]),
 
   // Store code snippets for the game

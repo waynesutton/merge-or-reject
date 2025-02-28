@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
@@ -19,6 +19,12 @@ import {
   Bot,
   Moon,
   Sun,
+  Braces,
+  FileCode,
+  Terminal,
+  Coffee,
+  Hash,
+  Database,
 } from "lucide-react";
 import { LANGUAGES, LEVEL_TIMES, Language, Difficulty } from "../types";
 import Toaster from "./Toaster";
@@ -49,11 +55,134 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   const [showEditSnippet, setShowEditSnippet] = useState(false);
   const [editingVolume, setEditingVolume] = useState<string | null>(null);
   const [volumeEditValue, setVolumeEditValue] = useState<number>(1);
+  const [newLanguage, setNewLanguage] = useState({
+    key: "",
+    displayName: "",
+    icon: "Code2", // Default icon
+  });
+  const [editingIcon, setEditingIcon] = useState<string | null>(null);
+  const [iconEditValue, setIconEditValue] = useState<string>("Code2");
+
+  // Add refs for inputs to maintain focus
+  const languageKeyRef = useRef<HTMLInputElement>(null);
+  const displayNameRef = useRef<HTMLInputElement>(null);
+  const iconSelectRef = useRef<HTMLSelectElement>(null);
+  const iconEditSelectRef = useRef<HTMLSelectElement>(null);
+  const volumeEditRef = useRef<HTMLInputElement>(null);
+  const codeEditorRef = useRef<HTMLTextAreaElement>(null);
+  const explanationEditorRef = useRef<HTMLTextAreaElement>(null);
+
+  // Add more refs
+  const editSnippetCodeRef = useRef<HTMLTextAreaElement>(null);
+  const editSnippetExplanationRef = useRef<HTMLTextAreaElement>(null);
+
+  // Available Lucide icons for languages
+  const availableIcons = [
+    { name: "Braces", component: <Braces className="w-5 h-5" /> },
+    { name: "FileCode", component: <FileCode className="w-5 h-5" /> },
+    { name: "Terminal", component: <Terminal className="w-5 h-5" /> },
+    { name: "Settings", component: <Settings className="w-5 h-5" /> },
+    { name: "Code2", component: <Code2 className="w-5 h-5" /> },
+    { name: "Database", component: <Database className="w-5 h-5" /> },
+    { name: "Coffee", component: <Coffee className="w-5 h-5" /> },
+    { name: "Hash", component: <Hash className="w-5 h-5" /> },
+  ];
 
   // Log authentication state for debugging
   useEffect(() => {
     console.log("Auth state:", { isLoaded, isSignedIn, userId: user?.id });
   }, [isLoaded, isSignedIn, user]);
+
+  // Add memoized handlers for select changes
+  const handleLanguageSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    setSelectedLanguage(e.target.value as Language);
+  }, []);
+
+  const handleDifficultySelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    setSelectedDifficulty(e.target.value as Difficulty);
+  }, []);
+
+  const handleSnippetVolumeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    const value = parseInt(e.target.value);
+    setNewSnippet((prev) => ({ ...prev, volume: value }));
+  }, []);
+
+  const handleSnippetIsValidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const checked = e.target.checked;
+    setNewSnippet((prev) => ({ ...prev, isValid: checked }));
+  }, []);
+
+  const handleEditSnippetIsValidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const checked = e.target.checked;
+    setEditingSnippet((prev: any) => ({ ...prev, isValid: checked }));
+  }, []);
+
+  // Update handlers to prevent focus loss
+  const handleLanguageKeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setNewLanguage((prev) => ({ ...prev, key: value }));
+  }, []);
+
+  const handleDisplayNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setNewLanguage((prev) => ({ ...prev, displayName: value }));
+  }, []);
+
+  const handleIconChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setNewLanguage((prev) => ({ ...prev, icon: value }));
+  }, []);
+
+  const handleIconEditChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setIconEditValue(value);
+  }, []);
+
+  const handleEditingSnippetChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setEditingSnippet((prev: any) => ({ ...prev, code: value }));
+  }, []);
+
+  const handleCodeChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setNewSnippet((prev) => ({ ...prev, code: value }));
+  }, []);
+
+  const handleExplanationChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const value = e.target.value;
+    setNewSnippet((prev) => ({ ...prev, explanation: value }));
+  }, []);
+
+  const handleVolumeEditChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const value = Math.max(1, parseInt(e.target.value) || 1);
+    setVolumeEditValue(value);
+  }, []);
+
+  // Update the edit snippet handlers
+  const handleEditingExplanationChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      e.preventDefault();
+      const value = e.target.value;
+      setEditingSnippet((prev: any) => ({ ...prev, explanation: value }));
+    },
+    []
+  );
+
+  // Add additional CSS classes where needed
+  const focusClasses = "focus:outline-none focus:ring-1 focus:ring-[#00FF94]";
 
   const AdminContent = () => {
     const settings = useQuery(api.settings.getSettings);
@@ -72,6 +201,107 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const deleteSnippetMutation = useMutation(api.snippets.deleteSnippet);
     const updateSnippetMutation = useMutation(api.snippets.updateSnippet);
     const updateLanguageVolumeMutation = useMutation(api.admin.updateLanguageVolume);
+    const updateLanguageStatusMutation = useMutation(api.admin.updateLanguageStatus);
+    const addLanguageVolumeMutation = useMutation(api.admin.addLanguageVolume);
+    const updateLanguageIconMutation = useMutation(api.admin.updateLanguageIcon);
+
+    // Move all useCallback hooks to the top level
+    const handleAiEnabledChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const checked = e.target.checked;
+        if (settings?.settings) {
+          updateSettingsMutation({
+            aiGeneration: {
+              ...settings.settings.aiGeneration,
+              enabled: checked,
+            },
+            clerkId: user?.id || "",
+          });
+        }
+      },
+      [updateSettingsMutation, settings?.settings, user?.id]
+    );
+
+    const handleValidRatioChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const value = parseFloat(e.target.value);
+        if (settings?.settings) {
+          updateSettingsMutation({
+            aiGeneration: {
+              ...settings.settings.aiGeneration,
+              validRatio: value,
+            },
+            clerkId: user?.id || "",
+          });
+        }
+      },
+      [updateSettingsMutation, settings?.settings, user?.id]
+    );
+
+    const handleMaxPerRequestChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const value = parseInt(e.target.value);
+        if (settings?.settings) {
+          updateSettingsMutation({
+            aiGeneration: {
+              ...settings.settings.aiGeneration,
+              maxPerRequest: value,
+            },
+            clerkId: user?.id || "",
+          });
+        }
+      },
+      [updateSettingsMutation, settings?.settings, user?.id]
+    );
+
+    const handleMinSnippetsChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const value = parseInt(e.target.value);
+        if (settings?.settings) {
+          updateSettingsMutation({
+            aiGeneration: {
+              ...settings.settings.aiGeneration,
+              minSnippetsBeforeGeneration: value,
+            },
+            clerkId: user?.id || "",
+          });
+        }
+      },
+      [updateSettingsMutation, settings?.settings, user?.id]
+    );
+
+    const handleSettingsChangePreventDefault = useCallback(
+      (
+        e: React.ChangeEvent<HTMLInputElement>,
+        difficulty: Difficulty,
+        field: "time" | "snippets"
+      ) => {
+        e.preventDefault();
+        const value = parseInt(e.target.value);
+        if (!isNaN(value) && settings?.settings) {
+          const newSettings = {
+            timeLimits: { ...settings.settings.timeLimits },
+            snippetsPerGame: { ...settings.settings.snippetsPerGame },
+          };
+
+          if (field === "time") {
+            newSettings.timeLimits[difficulty] = value;
+          } else {
+            newSettings.snippetsPerGame[difficulty] = value;
+          }
+
+          updateSettingsMutation({
+            ...newSettings,
+            clerkId: user?.id || "",
+          });
+        }
+      },
+      [updateSettingsMutation, settings?.settings, user?.id]
+    );
 
     // Handle unauthorized access or loading state
     if (!user?.id || !settings || !snippets) {
@@ -114,30 +344,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const snippetsData = snippets || [];
 
-    const handleSettingsChange = (
-      difficulty: Difficulty,
-      field: "time" | "snippets",
-      value: number
-    ) => {
-      if (!settingsData.settings) return;
-
-      const newSettings = {
-        timeLimits: { ...settingsData.settings.timeLimits },
-        snippetsPerGame: { ...settingsData.settings.snippetsPerGame },
-      };
-
-      if (field === "time") {
-        newSettings.timeLimits[difficulty] = value;
-      } else {
-        newSettings.snippetsPerGame[difficulty] = value;
-      }
-
-      updateSettingsMutation({
-        ...newSettings,
-        clerkId: user?.id,
-      });
-    };
-
     const handleAddSnippet = async () => {
       try {
         await addSnippetMutation({
@@ -159,9 +365,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleCreateNewVolume = async (language: Language) => {
       try {
+        // Get the current icon for this language
+        const volume = settingsData.volumes.find((vol) => vol.language === language);
+        const icon = volume?.icon || "Code2"; // Use existing icon or default to Code2
+
         await createNewVolumeMutation({
           language,
-          clerkId: user?.id,
+          clerkId: user?.id || "",
+          icon,
         });
       } catch (error) {
         console.error("Error creating new volume:", error);
@@ -233,6 +444,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       }
     };
 
+    const handleUpdateLanguageStatus = async (
+      language: string,
+      status: "active" | "paused" | "removed"
+    ) => {
+      try {
+        await updateLanguageStatusMutation({
+          language,
+          status,
+          clerkId: user?.id || "",
+        });
+      } catch (error) {
+        console.error("Error updating language status:", error);
+      }
+    };
+
+    const handleAddLanguage = async () => {
+      try {
+        if (newLanguage.key && newLanguage.displayName) {
+          await addLanguageVolumeMutation({
+            language: newLanguage.key,
+            displayName: newLanguage.displayName,
+            icon: newLanguage.icon,
+            clerkId: user?.id || "",
+          });
+          setNewLanguage({ key: "", displayName: "", icon: "Code2" });
+        }
+      } catch (error) {
+        console.error("Error adding language:", error);
+      }
+    };
+
+    const handleUpdateLanguageIcon = async (language: string) => {
+      try {
+        await updateLanguageIconMutation({
+          language,
+          icon: iconEditValue,
+          clerkId: user?.id || "",
+        });
+        setEditingIcon(null);
+      } catch (error) {
+        console.error("Error updating language icon:", error);
+      }
+    };
+
     const renderAddSnippetModal = () => (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div
@@ -253,10 +508,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <label className="block text-sm text-gray-400 mb-1">Language</label>
                 <select
                   value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value as Language)}
-                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
-                  id="add-snippet-language"
-                  name="add-snippet-language">
+                  onChange={handleLanguageSelectChange}
+                  className={`bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
+                  id="language-filter"
+                  name="language-filter">
                   {Object.entries(LANGUAGES).map(([key, name]) => (
                     <option key={key} value={key}>
                       {name}
@@ -268,10 +523,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <label className="block text-sm text-gray-400 mb-1">Difficulty</label>
                 <select
                   value={selectedDifficulty}
-                  onChange={(e) => setSelectedDifficulty(e.target.value as Difficulty)}
-                  className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
-                  id="add-snippet-difficulty"
-                  name="add-snippet-difficulty">
+                  onChange={handleDifficultySelectChange}
+                  className={`bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
+                  id="difficulty-filter"
+                  name="difficulty-filter">
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
                   <option value="hard">Hard</option>
@@ -281,9 +536,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <label className="block text-sm text-gray-400 mb-1">Volume</label>
                 <select
                   value={newSnippet.volume}
-                  onChange={(e) =>
-                    setNewSnippet((prev) => ({ ...prev, volume: parseInt(e.target.value) }))
-                  }
+                  onChange={handleSnippetVolumeChange}
                   className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                   id="add-snippet-volume"
                   name="add-snippet-volume">
@@ -305,16 +558,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <label className="block text-sm text-gray-400 mb-1">Code</label>
               <textarea
                 value={newSnippet.code}
-                onChange={(e) =>
-                  setNewSnippet((prev) => ({
-                    ...prev,
-                    code: e.target.value,
-                  }))
-                }
-                className="w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono"
+                onChange={handleCodeChange}
+                ref={codeEditorRef}
+                className={`w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono ${focusClasses}`}
                 placeholder="Enter code snippet here..."
-                spellCheck="false"
-                autoComplete="off"
                 id="add-snippet-code"
                 name="add-snippet-code"
               />
@@ -325,9 +572,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <input
                   type="checkbox"
                   checked={newSnippet.isValid}
-                  onChange={(e) =>
-                    setNewSnippet((prev) => ({ ...prev, isValid: e.target.checked }))
-                  }
+                  onChange={handleSnippetIsValidChange}
                   className="rounded bg-black/30"
                   id="add-snippet-valid"
                   name="add-snippet-valid"
@@ -340,10 +585,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <label className="block text-sm text-gray-400 mb-1">Explanation</label>
               <textarea
                 value={newSnippet.explanation}
-                onChange={(e) =>
-                  setNewSnippet((prev) => ({ ...prev, explanation: e.target.value }))
-                }
-                className="w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+                onChange={handleExplanationChange}
+                ref={explanationEditorRef}
+                className={`w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                 placeholder="Explain why this code is valid/invalid..."
                 id="add-snippet-explanation"
                 name="add-snippet-explanation"
@@ -428,11 +672,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <label className="block text-sm text-gray-400 mb-1">Code</label>
                 <textarea
                   value={editingSnippet.code}
-                  onChange={(e) => setEditingSnippet({ ...editingSnippet, code: e.target.value })}
-                  className="w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono"
-                  placeholder="Enter code snippet here..."
-                  spellCheck="false"
-                  autoComplete="off"
+                  onChange={handleEditingSnippetChange}
+                  ref={editSnippetCodeRef}
+                  className={`w-full h-64 font-mono text-xs bg-black/30 p-4 rounded-lg text-gray-300 ${focusClasses}`}
                   id="edit-snippet-code"
                   name="edit-snippet-code"
                 />
@@ -443,9 +685,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   <input
                     type="checkbox"
                     checked={editingSnippet.isValid}
-                    onChange={(e) =>
-                      setEditingSnippet({ ...editingSnippet, isValid: e.target.checked })
-                    }
+                    onChange={handleEditSnippetIsValidChange}
                     className="rounded bg-black/30"
                     id="edit-snippet-valid"
                     name="edit-snippet-valid"
@@ -458,11 +698,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <label className="block text-sm text-gray-400 mb-1">Explanation</label>
                 <textarea
                   value={editingSnippet.explanation}
-                  onChange={(e) =>
-                    setEditingSnippet({ ...editingSnippet, explanation: e.target.value })
-                  }
-                  className="w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
-                  placeholder="Explain why this code is valid/invalid..."
+                  onChange={handleEditingExplanationChange}
+                  ref={editSnippetExplanationRef}
+                  className={`w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                   id="edit-snippet-explanation"
                   name="edit-snippet-explanation"
                 />
@@ -486,238 +724,427 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       );
     };
 
-    const renderSettings = () => (
-      <div>
-        <div className="space-y-8">
-          <div>
-            <h3 className="text-lg mb-4">AI Generation</h3>
-            <div className="space-y-6">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={settingsData.settings.aiGeneration.enabled}
-                  onChange={(e) =>
-                    updateSettingsMutation({
-                      aiGeneration: {
-                        ...settingsData.settings.aiGeneration,
-                        enabled: e.target.checked,
-                      },
-                      clerkId: user?.id,
-                    })
-                  }
-                  className="rounded bg-black/30"
-                />
-                <span className="text-sm text-gray-300">Enable AI Generation</span>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Valid/Invalid Ratio</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={settingsData.settings.aiGeneration.validRatio}
-                  onChange={(e) =>
-                    updateSettingsMutation({
-                      aiGeneration: {
-                        ...settingsData.settings.aiGeneration,
-                        validRatio: parseFloat(e.target.value),
-                      },
-                      clerkId: user?.id,
-                    })
-                  }
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>More Invalid</span>
-                  <span>
-                    {Math.round(settingsData.settings.aiGeneration.validRatio * 100)}% Valid
-                  </span>
-                  <span>More Valid</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Max Snippets per Generation
-                  </label>
+    const renderSettings = () => {
+      return (
+        <div>
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-lg mb-4">AI Generation</h3>
+              <div className="space-y-6">
+                <div className="flex items-center space-x-2">
                   <input
-                    type="number"
-                    value={settingsData.settings.aiGeneration.maxPerRequest}
-                    onChange={(e) =>
-                      updateSettingsMutation({
-                        aiGeneration: {
-                          ...settingsData.settings.aiGeneration,
-                          maxPerRequest: parseInt(e.target.value),
-                        },
-                        clerkId: user?.id,
-                      })
-                    }
-                    min="1"
-                    max="10"
-                    className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
+                    type="checkbox"
+                    checked={settingsData.settings.aiGeneration.enabled}
+                    onChange={handleAiEnabledChange}
+                    className="rounded bg-black/30"
+                    id="enable-ai-generation"
+                    name="enable-ai-generation"
                   />
+                  <span className="text-sm text-gray-300">Enable AI Generation</span>
                 </div>
+
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Min Snippets Before Generation
-                  </label>
+                  <label className="block text-sm text-gray-400 mb-1">Valid/Invalid Ratio</label>
                   <input
-                    type="number"
-                    value={settingsData.settings.aiGeneration.minSnippetsBeforeGeneration}
-                    onChange={(e) =>
-                      updateSettingsMutation({
-                        aiGeneration: {
-                          ...settingsData.settings.aiGeneration,
-                          minSnippetsBeforeGeneration: parseInt(e.target.value),
-                        },
-                        clerkId: user?.id,
-                      })
-                    }
-                    min="1"
-                    max="20"
-                    className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={settingsData.settings.aiGeneration.validRatio}
+                    onChange={handleValidRatioChange}
+                    className="w-full"
+                    id="valid-ratio-slider"
+                    name="valid-ratio-slider"
                   />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>More Invalid</span>
+                    <span>
+                      {Math.round(settingsData.settings.aiGeneration.validRatio * 100)}% Valid
+                    </span>
+                    <span>More Valid</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      Max Snippets per Generation
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsData.settings.aiGeneration.maxPerRequest}
+                      onChange={handleMaxPerRequestChange}
+                      min="1"
+                      max="10"
+                      className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
+                      id="max-per-request"
+                      name="max-per-request"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      Min Snippets Before Generation
+                    </label>
+                    <input
+                      type="number"
+                      value={settingsData.settings.aiGeneration.minSnippetsBeforeGeneration}
+                      onChange={handleMinSnippetsChange}
+                      min="1"
+                      max="20"
+                      className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
+                      id="min-snippets-before-generation"
+                      name="min-snippets-before-generation"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div>
-            <h3 className="text-lg mb-4">Language Volumes</h3>
-            <div className="space-y-6">
-              {settingsData.volumes.map((volume) => {
-                const languageName =
-                  LANGUAGES[volume.language as keyof typeof LANGUAGES] ||
-                  volume.language.charAt(0).toUpperCase() + volume.language.slice(1);
+            <div>
+              <h3 className="text-lg mb-4">Language Volumes</h3>
 
-                return (
-                  <div key={volume.language} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-[#00FF94]">{languageName}</h4>
-                      <div className="flex space-x-2">
-                        {editingVolume === volume.language ? (
-                          <>
-                            <button
-                              onClick={() => setEditingVolume(null)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                              <X className="w-4 h-4" />
-                              <span>Cancel</span>
-                            </button>
-                            <button
-                              onClick={() => handleUpdateLanguageVolume(volume.language)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
-                              <span>Save</span>
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => {
-                                setEditingVolume(volume.language);
-                                setVolumeEditValue(volume.currentVolume);
-                              }}
-                              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                              <Edit className="w-4 h-4" />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              onClick={() => handleCreateNewVolume(volume.language as Language)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
-                              <Plus className="w-4 h-4" />
-                              <span>New Volume</span>
-                            </button>
-                          </>
-                        )}
+              <div className="bg-black/30 p-4 rounded-lg mb-6">
+                <h4 className="text-sm text-gray-400 mb-4">Add New Language</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Language Key</label>
+                    <input
+                      type="text"
+                      value={newLanguage.key}
+                      onChange={handleLanguageKeyChange}
+                      ref={languageKeyRef}
+                      className={`w-full bg-black/30 px-2 py-1 rounded-lg text-white ${focusClasses}`}
+                      placeholder="e.g., javascript"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Display Name</label>
+                    <input
+                      type="text"
+                      value={newLanguage.displayName}
+                      onChange={handleDisplayNameChange}
+                      ref={displayNameRef}
+                      className={`w-full bg-black/30 px-2 py-1 rounded-lg text-white ${focusClasses}`}
+                      placeholder="e.g., JavaScript"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Icon</label>
+                    <div className="relative">
+                      <select
+                        value={newLanguage.icon}
+                        onChange={handleIconChange}
+                        ref={iconSelectRef}
+                        className="appearance-none w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 pr-10 focus:outline-none focus:ring-1 focus:ring-[#00FF94]">
+                        {availableIcons.map((icon) => (
+                          <option key={icon.name} value={icon.name}>
+                            {icon.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                        <ChevronDown className="w-4 h-4 text-gray-400" />
                       </div>
                     </div>
-
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleAddLanguage}
+                      disabled={!newLanguage.key || !newLanguage.displayName}
+                      className="px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      Add Language
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-4">
+                  {availableIcons.map((icon) => (
                     <div
-                      className={`${editingVolume === volume.language ? "bg-black/40" : "bg-black/20"} p-4 rounded-lg`}>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        <div>
-                          <span className="text-sm text-gray-400">Total Snippets</span>
-                          <p className="text-xl">{volume.snippetCount}</p>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Last Updated</span>
-                          <p className="text-sm">
-                            {new Date(volume.lastAiGeneration).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Current Volume</span>
+                      key={icon.name}
+                      className={`p-2 rounded-lg cursor-pointer ${
+                        newLanguage.icon === icon.name
+                          ? "bg-[#00FF94] text-black"
+                          : "bg-black/30 text-gray-300"
+                      }`}
+                      onClick={() => setNewLanguage({ ...newLanguage, icon: icon.name })}>
+                      <div className="flex items-center space-x-2">
+                        {icon.component}
+                        <span className="text-xs">{icon.name}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {settingsData.volumes.map((volume) => {
+                  const languageName =
+                    LANGUAGES[volume.language as keyof typeof LANGUAGES] ||
+                    volume.language.charAt(0).toUpperCase() + volume.language.slice(1);
+
+                  return (
+                    <div key={volume.language} className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4
+                          className={`${volume.status === "paused" ? "text-gray-500" : volume.status === "removed" ? "text-red-500" : "text-[#00FF94]"}`}>
+                          {languageName}
+                          {volume.status === "paused" && (
+                            <span className="ml-2 text-sm">(Paused)</span>
+                          )}
+                          {volume.status === "removed" && (
+                            <span className="ml-2 text-sm">(Removed)</span>
+                          )}
+                        </h4>
+                        <div className="flex space-x-2">
                           {editingVolume === volume.language ? (
-                            <input
-                              type="number"
-                              min="1"
-                              value={volumeEditValue}
-                              onChange={(e) =>
-                                setVolumeEditValue(Math.max(1, parseInt(e.target.value) || 1))
-                              }
-                              className="w-full bg-black/30 px-2 py-1 rounded-lg text-lg text-white"
-                            />
+                            <>
+                              <button
+                                onClick={() => setEditingVolume(null)}
+                                className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                <X className="w-4 h-4" />
+                                <span>Cancel</span>
+                              </button>
+                              <button
+                                onClick={() => handleUpdateLanguageVolume(volume.language)}
+                                className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+                                <span>Save</span>
+                              </button>
+                            </>
                           ) : (
-                            <p className="text-xl">{volume.currentVolume}</p>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingVolume(volume.language);
+                                  setVolumeEditValue(volume.currentVolume);
+                                }}
+                                className="flex items-center space-x-2 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                <Edit className="w-4 h-4" />
+                                <span>Edit</span>
+                              </button>
+
+                              {volume.status !== "active" && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdateLanguageStatus(volume.language, "active")
+                                  }
+                                  className="flex items-center space-x-2 px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-600 transition-colors">
+                                  <span>Activate</span>
+                                </button>
+                              )}
+
+                              {volume.status !== "paused" && volume.status !== "removed" && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdateLanguageStatus(volume.language, "paused")
+                                  }
+                                  className="flex items-center space-x-2 px-4 py-2 bg-yellow-700 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+                                  <span>Pause</span>
+                                </button>
+                              )}
+
+                              {volume.status !== "removed" && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdateLanguageStatus(volume.language, "removed")
+                                  }
+                                  className="flex items-center space-x-2 px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-600 transition-colors">
+                                  <span>Remove</span>
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleCreateNewVolume(volume.language as Language)}
+                                className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+                                <Plus className="w-4 h-4" />
+                                <span>New Volume</span>
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
-          <div>
-            <h3 className="text-lg mb-4">Game Configuration</h3>
-            <div className="space-y-6">
-              {Object.entries(settingsData.settings.timeLimits).map(([difficulty, time]) => (
-                <div key={difficulty} className="space-y-4">
-                  <h4 className="text-[#00FF94] capitalize">{difficulty}</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm text-gray-400 mb-1">
-                        Time Limit (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        value={time}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            difficulty as Difficulty,
-                            "time",
-                            parseInt(e.target.value)
-                          )
-                        }
-                        className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
-                      />
+                      <div
+                        className={`${editingVolume === volume.language ? "bg-black/40" : "bg-black/20"} p-4 rounded-lg`}>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-400">Icon</span>
+                              {editingIcon === volume.language ? (
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => setEditingIcon(null)}
+                                    className="text-xs bg-gray-700 text-white px-2 py-1 rounded hover:bg-gray-600 transition-colors">
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateLanguageIcon(volume.language)}
+                                    className="text-xs bg-[#00FF94] text-black px-2 py-1 rounded hover:bg-[#00CC77] transition-colors">
+                                    Save
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingIcon(volume.language);
+                                    setIconEditValue(volume.icon || "Code2");
+                                  }}
+                                  className="text-xs bg-gray-700 text-white px-2 py-1 rounded hover:bg-gray-600 transition-colors">
+                                  Edit
+                                </button>
+                              )}
+                            </div>
+                            {editingIcon === volume.language ? (
+                              <div className="mt-2">
+                                <select
+                                  value={iconEditValue}
+                                  onChange={handleIconEditChange}
+                                  ref={iconEditSelectRef}
+                                  className="w-full bg-black/30 px-2 py-1 rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#00FF94]"
+                                  id="icon-edit-select"
+                                  name="icon-edit-select">
+                                  {availableIcons.map((icon) => (
+                                    <option key={icon.name} value={icon.name}>
+                                      {icon.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {availableIcons.map((icon) => (
+                                    <div
+                                      key={icon.name}
+                                      className={`p-1 rounded cursor-pointer ${
+                                        iconEditValue === icon.name
+                                          ? "bg-[#00FF94] text-black"
+                                          : "bg-black/30 text-gray-300"
+                                      }`}
+                                      onClick={() => setIconEditValue(icon.name)}>
+                                      {icon.component}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2 mt-1">
+                                {(() => {
+                                  const IconComponent =
+                                    volume.icon === "Braces"
+                                      ? Braces
+                                      : volume.icon === "FileCode"
+                                        ? FileCode
+                                        : volume.icon === "Terminal"
+                                          ? Terminal
+                                          : volume.icon === "Settings"
+                                            ? Settings
+                                            : volume.icon === "Database"
+                                              ? Database
+                                              : volume.icon === "Coffee"
+                                                ? Coffee
+                                                : volume.icon === "Hash"
+                                                  ? Hash
+                                                  : Code2;
+                                  return <IconComponent className="w-5 h-5" />;
+                                })()}
+                                <span className="text-sm">{volume.icon || "Code2"}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Total Snippets</span>
+                            <p className="text-xl">{volume.snippetCount}</p>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Last Updated</span>
+                            <p className="text-sm">
+                              {new Date(volume.lastAiGeneration).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Current Volume</span>
+                            {editingVolume === volume.language ? (
+                              <input
+                                type="number"
+                                min="1"
+                                value={volumeEditValue}
+                                onChange={handleVolumeEditChange}
+                                ref={volumeEditRef}
+                                className={`w-full bg-black/30 px-2 py-1 rounded-lg text-lg text-white ${focusClasses}`}
+                                id="volume-edit-input"
+                                name="volume-edit-input"
+                              />
+                            ) : (
+                              <p className="text-xl">{volume.currentVolume}</p>
+                            )}
+                          </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Status</span>
+                            <p
+                              className={`text-xl ${
+                                volume.status === "active"
+                                  ? "text-green-500"
+                                  : volume.status === "paused"
+                                    ? "text-yellow-500"
+                                    : "text-red-500"
+                              }`}>
+                              {volume.status || "active"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm text-gray-400 mb-1">Snippets per Game</label>
-                      <input
-                        type="number"
-                        value={settingsData.settings.snippetsPerGame[difficulty as Difficulty]}
-                        onChange={(e) =>
-                          handleSettingsChange(
-                            difficulty as Difficulty,
-                            "snippets",
-                            parseInt(e.target.value)
-                          )
-                        }
-                        className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
-                      />
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg mb-4">Game Configuration</h3>
+              <div className="space-y-6">
+                {Object.entries(settingsData.settings.timeLimits).map(([difficulty, time]) => (
+                  <div key={difficulty} className="space-y-4">
+                    <h4 className="text-[#00FF94] capitalize">{difficulty}</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">
+                          Time Limit (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          value={time}
+                          onChange={(e) =>
+                            handleSettingsChangePreventDefault(e, difficulty as Difficulty, "time")
+                          }
+                          className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
+                          id={`time-limit-${difficulty}`}
+                          name={`time-limit-${difficulty}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-1">
+                          Snippets per Game
+                        </label>
+                        <input
+                          type="number"
+                          value={settingsData.settings.snippetsPerGame[difficulty as Difficulty]}
+                          onChange={(e) =>
+                            handleSettingsChangePreventDefault(
+                              e,
+                              difficulty as Difficulty,
+                              "snippets"
+                            )
+                          }
+                          className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
+                          id={`snippets-per-game-${difficulty}`}
+                          name={`snippets-per-game-${difficulty}`}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    };
 
     const renderCodeSnippets = () => (
       <div>
@@ -726,8 +1153,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           <div className="flex items-center space-x-4">
             <select
               value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value as Language)}
-              className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300">
+              onChange={handleLanguageSelectChange}
+              className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+              id="language-filter"
+              name="language-filter">
               {Object.entries(LANGUAGES).map(([key, name]) => (
                 <option key={key} value={key}>
                   {name}
@@ -736,8 +1165,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
             </select>
             <select
               value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value as Difficulty)}
-              className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300">
+              onChange={handleDifficultySelectChange}
+              className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
+              id="difficulty-filter"
+              name="difficulty-filter">
               <option value="easy">Easy</option>
               <option value="medium">Medium</option>
               <option value="hard">Hard</option>

@@ -56,7 +56,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
           {/* Social Links */}
           <div>
             <h3 className={`text-sm mb-4 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
-              Links
+              Repo
             </h3>
             <div className="flex space-x-4">
               <ul className="space-y-2 text-sm">
@@ -71,7 +71,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
 
                 <li>
                   <a
-                    href="https://discord.gg/XcRXcWPJGG"
+                    href="https://github.com/waynesutton/merge-or-reject/discussions"
                     className={`${isDarkMode ? "text-gray-400" : "text-gray-600"} hover:text-[#00FF94] transition-colors`}>
                     Support
                   </a>

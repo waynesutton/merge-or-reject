@@ -68,6 +68,8 @@ export const getSettings = query({
         snippetCount: v.number(),
         aiGeneratedCount: v.number(),
         lastAiGeneration: v.string(),
+        status: v.optional(v.union(v.literal("active"), v.literal("paused"), v.literal("removed"))),
+        icon: v.optional(v.string()),
       })
     ),
   }),
@@ -116,6 +118,8 @@ export const getSettings = query({
       snippetCount: vol.snippetCount,
       aiGeneratedCount: vol.aiGeneratedCount,
       lastAiGeneration: vol.lastAiGeneration,
+      status: vol.status || "active", // Default to active for existing records
+      icon: vol.icon, // Include the icon in the response
     }));
 
     // Return formatted settings without system fields
@@ -198,6 +202,7 @@ export const createNewVolume = mutation({
   args: {
     language: v.string(),
     clerkId: v.string(),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Verify admin access
@@ -214,6 +219,7 @@ export const createNewVolume = mutation({
         snippetCount: 0,
         aiGeneratedCount: 0,
         lastAiGeneration: new Date().toISOString(),
+        // Don't update the icon if it already exists
       });
     } else {
       await ctx.db.insert("languageVolumes", {
@@ -222,6 +228,8 @@ export const createNewVolume = mutation({
         snippetCount: 0,
         aiGeneratedCount: 0,
         lastAiGeneration: new Date().toISOString(),
+        status: "active",
+        icon: args.icon,
       });
     }
   },

@@ -391,3 +391,129 @@ export const updateLanguageVolume = mutation({
     }
   },
 });
+
+/**
+ * Add a new language volume - admin only
+ */
+export const addLanguageVolume = mutation({
+  args: {
+    language: v.string(),
+    displayName: v.string(),
+    icon: v.optional(v.string()),
+    clerkId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    try {
+      // Verify admin access
+      await requireAdmin(ctx, args.clerkId);
+
+      // Check if the language already exists
+      const existingLanguage = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", args.language))
+        .unique();
+
+      if (existingLanguage) {
+        throw new Error(`Language volume for ${args.language} already exists`);
+      }
+
+      // Create a new language volume
+      await ctx.db.insert("languageVolumes", {
+        language: args.language,
+        currentVolume: 1,
+        snippetCount: 0,
+        aiGeneratedCount: 0,
+        lastAiGeneration: new Date().toISOString(),
+        status: "active",
+        icon: args.icon,
+      });
+
+      console.log(`Admin ${args.clerkId} added new language volume for ${args.language}`);
+      return null;
+    } catch (error) {
+      console.error("Error adding language volume:", error);
+      throw error;
+    }
+  },
+});
+
+/**
+ * Update a language volume's status - admin only
+ */
+export const updateLanguageStatus = mutation({
+  args: {
+    language: v.string(),
+    status: v.union(v.literal("active"), v.literal("paused"), v.literal("removed")),
+    clerkId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    try {
+      // Verify admin access
+      await requireAdmin(ctx, args.clerkId);
+
+      // Get the existing language volume record
+      const languageVolume = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", args.language))
+        .unique();
+
+      if (!languageVolume) {
+        throw new Error(`Language volume for ${args.language} not found`);
+      }
+
+      // Update the language volume status
+      await ctx.db.patch(languageVolume._id, {
+        status: args.status,
+      });
+
+      console.log(
+        `Admin ${args.clerkId} updated language ${args.language} status to ${args.status}`
+      );
+      return null;
+    } catch (error) {
+      console.error("Error updating language status:", error);
+      throw error;
+    }
+  },
+});
+
+/**
+ * Update a language volume's icon - admin only
+ */
+export const updateLanguageIcon = mutation({
+  args: {
+    language: v.string(),
+    icon: v.string(),
+    clerkId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    try {
+      // Verify admin access
+      await requireAdmin(ctx, args.clerkId);
+
+      // Get the existing language volume record
+      const languageVolume = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", args.language))
+        .unique();
+
+      if (!languageVolume) {
+        throw new Error(`Language volume for ${args.language} not found`);
+      }
+
+      // Update the language volume icon
+      await ctx.db.patch(languageVolume._id, {
+        icon: args.icon,
+      });
+
+      console.log(`Admin ${args.clerkId} updated language ${args.language} icon to ${args.icon}`);
+      return null;
+    } catch (error) {
+      console.error("Error updating language icon:", error);
+      throw error;
+    }
+  },
+});
