@@ -89,7 +89,6 @@ async function generateAISnippets(
         content: prompt,
       },
     ],
-    response_format: { type: "json_object" },
   });
 
   const content = response.choices[0].message.content;

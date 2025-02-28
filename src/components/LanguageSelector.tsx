@@ -99,7 +99,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
       <p className="text-4xl font-normal">
         Are you smarter than AI?
         <span className={`text-sm ml-2 text-[#EE342E]`}>
-          <p className="text-lg pt-5">VOL 1: You vs OpenAI gpt-4</p>
+          <p className="text-lg pt-5">VOL 1: Challenge OpenAI gpt-4</p>
         </span>
       </p>
       <p className={`mt-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"} mb-8`}>

@@ -130,3 +130,9 @@ If you need to modify the system to generate snippets on-demand (during game sta
    - Players would experience delays at game start
    - API costs would be less predictable
    - Game reliability would depend on OpenAI API availability
+
+## 8 system prompt pages and prompt
+ all three files have exactly the same system prompt:
+✅ src/lib/openai.ts
+✅ convex/snippets.ts
+✅ convex/codeSnippets.ts 

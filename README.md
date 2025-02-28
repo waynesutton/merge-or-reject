@@ -28,7 +28,12 @@ Merge or Reject is an open source game where developers test their code review s
   - Medium (100 seconds, 5 rounds)
   - Hard (30 seconds, 7 rounds)
 - Volume-based progression system
-- AI-generated code snippets using GPT-4
+- AI-generated code snippets using GPT-4 with:
+  - Language-specific best practices
+  - Contextual hints in explanations
+  - Difficulty-appropriate challenges
+  - Security and performance considerations
+  - Smart tagging system
 - Instant feedback and detailed explanations
 - Skip option for challenging snippets
 - Visual effects and celebrations
@@ -49,7 +54,13 @@ Merge or Reject is an open source game where developers test their code review s
 - Comprehensive dashboard
 - Game statistics monitoring
 - Code snippet management
-- AI generation controls
+- AI generation controls:
+  - Valid/Invalid ratio adjustment
+  - Max snippets per generation
+  - Min snippets threshold
+  - Language-specific volume control
+  - Difficulty-based generation
+  - Pre-generation system for reliability
 - Volume and difficulty settings
 - Snippet editing capabilities
 - User role management
