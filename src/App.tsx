@@ -9,6 +9,7 @@ import ScoresPage from "./components/ScoresPage";
 import NotFoundPage from "./components/NotFoundPage";
 import Footer from "./components/Footer";
 import GameContainer from "./components/GameContainer";
+import RecapPage from "./components/recap/RecapPage";
 import { Language } from "./types";
 
 if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
@@ -107,6 +108,7 @@ function App() {
                 />
               }
             />
+            <Route path="/recap/:id" element={<RecapPage />} />
             <Route
               path="*"
               element={<NotFoundPage isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />}

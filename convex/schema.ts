@@ -66,7 +66,11 @@ export default defineSchema({
     snippetsPlayed: v.array(v.id("codeSnippets")),
     userAnswers: v.array(v.boolean()),
     createdAt: v.string(),
-  }).index("by_user", ["userId"]),
+    recap: v.optional(v.string()),
+    slugId: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_slug", ["slugId"]),
 
   // Store user statistics per language
   userStats: defineTable({

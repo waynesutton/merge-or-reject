@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Share2, RefreshCw, Twitter, Linkedin } from "lucide-react";
-import { useMutation } from "convex/react";
+import { Share2, RefreshCw, Twitter, Linkedin, BookOpen } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { Link } from "react-router-dom";
 
 interface GameResultProps {
   score: number;
@@ -14,6 +15,7 @@ interface GameResultProps {
   userId: Id<"users">;
   playerName: string;
   maxRounds?: number;
+  gameId?: Id<"games">;
 }
 
 const GameResult: React.FC<GameResultProps> = ({
@@ -26,6 +28,7 @@ const GameResult: React.FC<GameResultProps> = ({
   userId,
   playerName,
   maxRounds: propMaxRounds,
+  gameId,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempName, setTempName] = useState(playerName);
@@ -33,6 +36,12 @@ const GameResult: React.FC<GameResultProps> = ({
   const maxRounds = propMaxRounds || (level === 1 ? 3 : level === 2 ? 5 : 7);
 
   const updateName = useMutation(api.users.updateAnonymousUserName);
+
+  // Get the game details to access the recap URL
+  const game = useQuery(api.games.getGameById, gameId ? { gameId } : "skip");
+
+  // Get the recap URL directly from the game
+  const recapUrl = game?.recap;
 
   const shareText = `I scored ${score}/${maxRounds} on Merge or Reject playing ${language} (Level ${level}, Vol ${volume})! Can you beat my score? 🚀 #coding #MergeOrReject`;
   const shareUrl = window.location.origin;
@@ -104,10 +113,23 @@ const GameResult: React.FC<GameResultProps> = ({
         <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
           {language} · Level {level} · Volume {volume}
         </p>
+
         {score === maxRounds && (
           <div className={`mt-4 p-4 ${isDarkMode ? "bg-black/30" : "bg-gray-100"} rounded-lg`}>
             <p className="text-xl mb-2"> 🎉🎉🎉 Congrats! You are smarter than AI!</p>
             <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Let the world know!</p>
+          </div>
+        )}
+
+        {/* Add Recap Link */}
+        {gameId && (
+          <div className="mt-4">
+            <Link
+              to={recapUrl || `/recap/${gameId.toString()}`}
+              className="flex items-center justify-center space-x-2 px-4 py-3 bg-[#2A65F1] text-white rounded-lg hover:bg-[#2055D0] transition-colors">
+              <BookOpen className="w-5 h-5" />
+              <span>See what you got right or wrong</span>
+            </Link>
           </div>
         )}
       </div>

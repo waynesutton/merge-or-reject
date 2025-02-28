@@ -484,6 +484,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
           playerName={playerName}
           isDarkMode={isDarkMode}
           maxRounds={snippets.length}
+          gameId={gameId || undefined}
         />
       </>
     );
@@ -504,6 +505,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
           playerName={playerName}
           isDarkMode={isDarkMode}
           maxRounds={snippets.length}
+          gameId={gameId || undefined}
         />
       </>
     );
