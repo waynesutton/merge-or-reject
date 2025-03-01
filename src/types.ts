@@ -2,7 +2,7 @@
  * types.ts
  *
  * Changes made:
- * - Removed default LANGUAGES object and predefined Language type
+ * - Removed default Language object and predefined Language type
  * - Updated Language type to be a string type instead of a union
  * - Kept all other type definitions and constants unchanged
  */
