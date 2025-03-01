@@ -373,3 +373,28 @@ export const generateMoreSnippets = mutation({
     return null;
   },
 });
+
+/**
+ * Check if snippets are available for a given language and difficulty
+ */
+export const checkSnippetsAvailability = query({
+  args: {
+    language: v.string(),
+    difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    // Normalize language to lowercase
+    const normalizedLanguage = args.language.toLowerCase();
+
+    // Check if there are any snippets for this language and difficulty
+    const snippets = await ctx.db
+      .query("codeSnippets")
+      .withIndex("by_language_difficulty", (q) =>
+        q.eq("language", normalizedLanguage).eq("difficulty", args.difficulty)
+      )
+      .take(1);
+
+    return snippets.length > 0;
+  },
+});
