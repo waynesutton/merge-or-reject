@@ -1386,7 +1386,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                         </label>
                         <input
                           type="number"
-                          value={time}
+                          value={isNaN(time) ? "" : time}
                           onChange={(e) =>
                             handleSettingsChangePreventDefault(e, difficulty as Difficulty, "time")
                           }

@@ -84,7 +84,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
         <div
           className={`mt-8 pt-8 ${isDarkMode ? "border-[#1A1A1A]" : "border-gray-900"} border-t flex flex-col md:flex-row justify-between items-center text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
           <div className="mb-4 md:mb-0">
-            <a href="https://github.com/waynesutton/mergeorreject">Open Source</a> powered by{" "}
+            <a href="https://github.com/waynesutton/merge-or-reject">Open Source</a> powered by{" "}
             <a
               href="https://convex.link/playmerge"
               className="hover:text-[#00FF94] transition-colors">

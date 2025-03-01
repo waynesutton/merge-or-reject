@@ -1,6 +1,6 @@
 # Merge or Reject - Open Source Code Review Game
 
-Merge or Reject is an open source game where developers test their code review skills against AI-generated code snippets. Players must decide whether to merge or reject code based on their analysis, making it a fun way to improve code review abilities.
+Merge or Reject is an open source game powered by [Convex](https://convex.link/playmerge) where developers test their code review skills against OpenAI generated code snippets. Players must decide whether to merge or reject code based on their analysis.
 
 ## 🎮 Game Features
 
@@ -23,10 +23,10 @@ Merge or Reject is an open source game where developers test their code review s
   - Java
   - C++ (cpp)
   - Rust
-- Three difficulty levels:
-  - Easy (120 seconds, 3 rounds)
-  - Medium (100 seconds, 5 rounds)
-  - Hard (30 seconds, 7 rounds)
+- Three difficulty levels set in the admin dashboard
+  - Easy
+  - Medium
+  - Hard
 - Volume-based progression system
 - AI-generated code snippets using GPT-4 with:
   - Language-specific best practices
@@ -72,13 +72,13 @@ Merge or Reject is an open source game where developers test their code review s
 - React 18 with TypeScript
 - Vite for build tooling
 - Tailwind CSS with custom theme
-- Lucide React icons
+- Lucide icons for React
 - Canvas Confetti
 - PowerGlitch effects
 
 ### Backend
 
-- Convex for serverless backend
+- [Convex](https://convex.link/playmerge) for server-side backend
 - Real-time data sync
 - OpenAI GPT-4 integration
 - Clerk authentication

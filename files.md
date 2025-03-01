@@ -81,7 +81,7 @@
 
 - `convex/clerk.ts`
 
-  - Clerk webhook integration
+  - Clerk web hook integration
   - User synchronization
   - Authentication events handling
   - Admin user provisioning

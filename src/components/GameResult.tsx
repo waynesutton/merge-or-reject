@@ -163,11 +163,12 @@ const GameResult: React.FC<GameResultProps> = ({
         </p>
         <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
           {language} · Level {level} · Volume {volume}
+          <p className="text-lg mb-2 text-[#EE342F] py-5"> </p>
         </p>
 
         {score === maxRounds && (
           <div className={`mt-4 p-4 ${isDarkMode ? "bg-black/30" : "bg-gray-100"} rounded-lg`}>
-            <p className="text-xl mb-2"> 🎉🎉🎉 Congrats! You are smarter than AI!</p>
+            <p className="text-xl mb-2">Congrats! You are smarter than AI!</p>
             <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Let the world know!</p>
           </div>
         )}
