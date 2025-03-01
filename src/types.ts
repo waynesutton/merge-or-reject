@@ -16,6 +16,13 @@ export type Level = 1 | 2 | 3;
 
 export type Difficulty = "easy" | "medium" | "hard";
 
+// Badge type definition
+export type Badge = {
+  name: string;
+  description: string;
+  emoji: string;
+};
+
 // Added LANGUAGES mapping
 export const LANGUAGES: Record<string, string> = {
   typescript: "TypeScript",

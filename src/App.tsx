@@ -23,7 +23,7 @@ function App() {
 
   // Initialize settings when app starts
   useEffect(() => {
-    initSettings().catch(console.error);
+    initSettings({ reset: false }).catch(console.error);
   }, [initSettings]);
 
   useEffect(() => {
