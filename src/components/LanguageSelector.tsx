@@ -111,7 +111,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
   return (
     <div className="max-w-4xl mx-auto text-center">
       <p className="text-4xl font-normal">
-        Are you smarter than AI?
+        Are you smarter than AI?<br></br>
         <span className={`text-sm ml-2 text-[#EE342E]`}>
           <span className="text-lg pt-5">VOL 1: Challenge OpenAI gpt-4</span>
         </span>

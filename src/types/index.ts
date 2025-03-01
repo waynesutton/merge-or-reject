@@ -1,8 +1,8 @@
 import { Id } from "../../convex/_generated/dataModel";
-import { LANGUAGES } from "../types";
+import { Language, LANGUAGES } from "../types";
 
 export type Level = 1 | 2 | 3;
-export type Language = string;
+export type { Language };
 
 export interface GameScore {
   id: Id<"games">;

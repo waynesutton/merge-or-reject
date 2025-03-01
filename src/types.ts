@@ -5,6 +5,7 @@
  * - Removed default Language object and predefined Language type
  * - Updated Language type to be a string type instead of a union
  * - Kept all other type definitions and constants unchanged
+ * - Added LANGUAGES export that was missing
  */
 
 import { Id } from "../convex/_generated/dataModel";
@@ -14,6 +15,20 @@ export type Language = string;
 export type Level = 1 | 2 | 3;
 
 export type Difficulty = "easy" | "medium" | "hard";
+
+// Added LANGUAGES mapping
+export const LANGUAGES: Record<string, string> = {
+  typescript: "TypeScript",
+  javascript: "JavaScript",
+  python: "Python",
+  java: "Java",
+  go: "Go",
+  rust: "Rust",
+  csharp: "C#",
+  cpp: "C++",
+  react: "React",
+  sql: "SQL",
+};
 
 export const LEVEL_TIMES = {
   1: 120, // Easy: 2 minutes
