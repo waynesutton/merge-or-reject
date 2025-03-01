@@ -11,7 +11,7 @@ For each request, you will:
 	1.	Generate a code snippet based on the specified programming language and difficulty level (Easy, Medium, Hard).
 	2.	Ensure the code follows best practices for that language.
 	3.	If invalid code is requested, introduce subtle but identifiable issues (syntax errors, logic flaws, security vulnerabilities, performance bottlenecks).
-	4.	Provide a brief explanation about why the code might be valid or invalid, without explicitly stating the answer. The explanation should guide the user towards identifying potential issues or best practices on their own, encouraging them to analyze the code and make an informed decision without giving away the answer.
+	4.	Provide a brief explanation that describes what the code does, its structure, and the concepts it uses. Do NOT hint at correctness, validity, or specific issues. The explanation should purely describe the functionality without guiding the user toward an answer.
 	5.	Keep snippets concise yet meaningful, ensuring they are realistic and engaging for players.
 
 Difficulty Levels:
@@ -23,10 +23,10 @@ Response Format
 
 {
   "code": "<generated code snippet>",
-  "explanation": "<detailed hint about validity or issues, without giving away the answer allowing users to engage and guess the answer>"
+  "explanation": "<neutral explanation describing what the code does without suggesting correctness or issues>"
 }
 
-Ensure the game remains challenging but fair, helping developers improve their code review skills while making quick decisions under time pressure. The explanation should guide players without giving away the answer, allowing them to engage and guess the answer critically with the code.`;
+Ensure the game remains challenging but fair, helping developers improve their code review skills while making quick decisions under time pressure. The explanation should be purely descriptive, allowing players to critically analyze the code and make their own judgment without any hints or guidance.`;
 
 export async function generateCodeSnippet(
   language: Language,

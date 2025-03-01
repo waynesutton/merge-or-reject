@@ -51,7 +51,10 @@ const HomePage: React.FC<HomePageProps> = ({
         <HowToPlay isDarkMode={isDarkMode} />
       </div>
 
-      <div className="max-w-4xl mx-auto mb-16 flex justify-center">
+      <div className="max-w-4xl mx-auto mb-16 flex flex-col items-center">
+        <div className="mb-4 text-center">
+          <span className="text-[#ffffff] text-lg font-bold">Game Demo</span>
+        </div>
         <CodingCatGif />
       </div>
 

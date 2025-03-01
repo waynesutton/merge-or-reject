@@ -136,3 +136,5 @@ If you need to modify the system to generate snippets on-demand (during game sta
 ✅ src/lib/openai.ts
 ✅ convex/snippets.ts
 ✅ convex/codeSnippets.ts 
+
+
