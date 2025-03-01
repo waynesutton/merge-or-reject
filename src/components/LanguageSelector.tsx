@@ -7,10 +7,21 @@
  * - Added proper type for language volumes from database
  * - Improved error handling for missing language names
  * - Maintained all existing UI and functionality
+ * - Added support for custom icon colors from database
  */
 
 import React, { useEffect, useState } from "react";
-import { Code2, Braces, FileCode, Terminal, Database, Coffee, Hash, Settings } from "lucide-react";
+import {
+  Code2,
+  Braces,
+  FileCode,
+  Terminal,
+  Database,
+  Coffee,
+  Hash,
+  Settings,
+  Worm,
+} from "lucide-react";
 import { Language } from "../types";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -24,6 +35,7 @@ interface LanguageSelectorProps {
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, isDarkMode }) => {
   const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
   const [languageIcons, setLanguageIcons] = useState<Record<string, string>>({});
+  const [languageIconColors, setLanguageIconColors] = useState<Record<string, string>>({});
 
   // Fetch settings to get language volumes and their statuses
   const settings = useQuery(api.settings.getSettings);
@@ -41,14 +53,19 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
 
       setAvailableLanguages(activeLanguages);
 
-      // Build map of language keys to icon names
+      // Build maps of language keys to icon names and colors
       const iconMap: Record<string, string> = {};
+      const colorMap: Record<string, string> = {};
       settings.volumes.forEach((vol) => {
         if (vol.icon) {
           iconMap[vol.language] = vol.icon;
         }
+        if (vol.iconColor) {
+          colorMap[vol.language] = vol.iconColor;
+        }
       });
       setLanguageIcons(iconMap);
+      setLanguageIconColors(colorMap);
     }
   }, [settings]);
 
@@ -62,26 +79,32 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
   const getLanguageIcon = (language: string) => {
     // Use the icon from the database if available
     const iconName = languageIcons[language];
+    const iconColor = languageIconColors[language] || "#FFFFFF"; // Default to white if no color set
+
+    // Create the style object for the icon color
+    const iconStyle = { color: iconColor };
 
     // Return the appropriate icon component based on the icon name
     switch (iconName) {
       case "Braces":
-        return <Braces className="w-12 h-12" />;
+        return <Braces className="w-12 h-12" style={iconStyle} />;
       case "FileCode":
-        return <FileCode className="w-12 h-12" />;
+        return <FileCode className="w-12 h-12" style={iconStyle} />;
       case "Terminal":
-        return <Terminal className="w-12 h-12" />;
+        return <Terminal className="w-12 h-12" style={iconStyle} />;
       case "Settings":
-        return <Settings className="w-12 h-12" />;
+        return <Settings className="w-12 h-12" style={iconStyle} />;
       case "Database":
-        return <Database className="w-12 h-12" />;
+        return <Database className="w-12 h-12" style={iconStyle} />;
       case "Coffee":
-        return <Coffee className="w-12 h-12" />;
+        return <Coffee className="w-12 h-12" style={iconStyle} />;
       case "Hash":
-        return <Hash className="w-12 h-12" />;
+        return <Hash className="w-12 h-12" style={iconStyle} />;
+      case "Worm":
+        return <Worm className="w-12 h-12" style={iconStyle} />;
       case "Code2":
       default:
-        return <Code2 className="w-12 h-12" />;
+        return <Code2 className="w-12 h-12" style={iconStyle} />;
     }
   };
 
@@ -90,12 +113,19 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
       <p className="text-4xl font-normal">
         Are you smarter than AI?
         <span className={`text-sm ml-2 text-[#EE342E]`}>
-          <p className="text-lg pt-5">VOL 1: Challenge OpenAI gpt-4</p>
+          <span className="text-lg pt-5">VOL 1: Challenge OpenAI gpt-4</span>
         </span>
       </p>
       <p className={`mt-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"} mb-8`}>
-        Select your language, review code snippets, and Merge (correct) or Reject (broken).<br></br>{" "}
-        Test your vibe coding skills against AI.
+        <span className="text-[#ffffff]">Select your language, review code snippets, and </span>
+        <span className="text-[#ffffff]">
+          {" "}
+          <span className="text-[#17A34A]">Merge</span> (correct) or{" "}
+        </span>
+        <span className="text-[#EE342E]">Reject</span>{" "}
+        <span className="text-[#ffffff]">
+          (broken).<br></br> Test your vibe coding skills against AI.
+        </span>
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {languages.map(({ key, name }) => (

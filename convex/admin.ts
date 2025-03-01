@@ -418,6 +418,7 @@ export const addLanguageVolume = mutation({
     language: v.string(),
     displayName: v.string(),
     icon: v.optional(v.string()),
+    iconColor: v.optional(v.string()),
     clerkId: v.string(),
   },
   returns: v.null(),
@@ -436,16 +437,25 @@ export const addLanguageVolume = mutation({
         throw new Error(`Language volume for ${args.language} already exists`);
       }
 
-      // Create a new language volume
-      await ctx.db.insert("languageVolumes", {
+      // Create insert data object
+      const insertData = {
         language: args.language,
         currentVolume: 1,
         snippetCount: 0,
         aiGeneratedCount: 0,
         lastAiGeneration: new Date().toISOString(),
-        status: "active",
+        status: "active" as "active" | "paused" | "removed",
         icon: args.icon,
-      });
+        displayName: args.displayName,
+      };
+
+      // Add iconColor if provided
+      if (args.iconColor) {
+        (insertData as any).iconColor = args.iconColor;
+      }
+
+      // Create a new language volume
+      await ctx.db.insert("languageVolumes", insertData);
 
       console.log(`Admin ${args.clerkId} added new language volume for ${args.language}`);
       return null;
@@ -504,6 +514,7 @@ export const updateLanguageIcon = mutation({
   args: {
     language: v.string(),
     icon: v.string(),
+    iconColor: v.optional(v.string()),
     clerkId: v.string(),
   },
   returns: v.null(),
@@ -522,12 +533,22 @@ export const updateLanguageIcon = mutation({
         throw new Error(`Language volume for ${args.language} not found`);
       }
 
-      // Update the language volume icon
-      await ctx.db.patch(languageVolume._id, {
+      // Create update object with icon
+      const updateObj: Record<string, any> = {
         icon: args.icon,
-      });
+      };
 
-      console.log(`Admin ${args.clerkId} updated language ${args.language} icon to ${args.icon}`);
+      // Add iconColor to update if provided
+      if (args.iconColor) {
+        updateObj.iconColor = args.iconColor;
+      }
+
+      // Update the language volume icon and color if provided
+      await ctx.db.patch(languageVolume._id, updateObj);
+
+      console.log(
+        `Admin ${args.clerkId} updated language ${args.language} icon to ${args.icon}${args.iconColor ? ` with color ${args.iconColor}` : ""}`
+      );
       return null;
     } catch (error) {
       console.error("Error updating language icon:", error);
@@ -549,6 +570,8 @@ export const getLanguages = query({
       lastAiGeneration: v.string(),
       status: v.optional(v.union(v.literal("active"), v.literal("paused"), v.literal("removed"))),
       icon: v.optional(v.string()),
+      iconColor: v.optional(v.string()),
+      displayName: v.optional(v.string()),
     })
   ),
   handler: async (ctx) => {

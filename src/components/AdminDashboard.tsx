@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
@@ -25,6 +25,12 @@ import {
   Coffee,
   Hash,
   Database,
+  Server,
+  FileJson,
+  FileCog,
+  Cpu,
+  LayoutTemplate,
+  Worm,
 } from "lucide-react";
 import { LEVEL_TIMES, Language, Difficulty } from "../types";
 import Toaster from "./Toaster";
@@ -40,6 +46,10 @@ interface LanguageVolume {
   snippetCount: number;
   aiGeneratedCount: number;
   lastAiGeneration: string;
+  status: "active" | "paused" | "removed";
+  icon?: string;
+  iconColor?: string;
+  displayName?: string;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeToggle }) => {
@@ -67,10 +77,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     key: "",
     displayName: "",
     icon: "Code2", // Default icon
+    iconColor: "#FFFFFF", // Add default icon color
   });
   const [editingIcon, setEditingIcon] = useState<string | null>(null);
   const [iconEditValue, setIconEditValue] = useState<string>("Code2");
   const [selectedVolume, setSelectedVolume] = useState<number>(1);
+  const [languageVolumes, setLanguageVolumes] = useState<LanguageVolume[]>([]);
 
   // Add refs for inputs to maintain focus
   const languageKeyRef = useRef<HTMLInputElement>(null);
@@ -87,95 +99,171 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
   // Available Lucide icons for languages
   const availableIcons = [
-    { name: "Braces", component: <Braces className="w-5 h-5" /> },
-    { name: "FileCode", component: <FileCode className="w-5 h-5" /> },
-    { name: "Terminal", component: <Terminal className="w-5 h-5" /> },
-    { name: "Settings", component: <Settings className="w-5 h-5" /> },
-    { name: "Code2", component: <Code2 className="w-5 h-5" /> },
-    { name: "Database", component: <Database className="w-5 h-5" /> },
-    { name: "Coffee", component: <Coffee className="w-5 h-5" /> },
+    {
+      name: "Braces",
+      component: <Braces className="w-5 h-5" />,
+    },
+    {
+      name: "FileCode",
+      component: <FileCode className="w-5 h-5" />,
+    },
+    {
+      name: "Terminal",
+      component: <Terminal className="w-5 h-5" />,
+    },
+    {
+      name: "Settings",
+      component: <Settings className="w-5 h-5" />,
+    },
+    {
+      name: "Code2",
+      component: <Code2 className="w-5 h-5" />,
+    },
+    {
+      name: "Database",
+      component: <Database className="w-5 h-5" />,
+    },
+    {
+      name: "Coffee",
+      component: <Coffee className="w-5 h-5" />,
+    },
     { name: "Hash", component: <Hash className="w-5 h-5" /> },
+    { name: "Worm", component: <Worm className="w-5 h-5" /> },
   ];
 
-  // Log authentication state for debugging
+  // Function to get colored icon component
+  const getColoredIcon = (iconName: string, color: string) => {
+    const iconData = availableIcons.find((icon) => icon.name === iconName);
+    if (!iconData) return null;
+
+    // Clone the icon element with the specified color
+    return React.cloneElement(iconData.component, { style: { color } });
+  };
+
+  // Use refs to track initialization status
+  const snippetCountsInitialized = useRef(false);
+  const volumesInitialized = useRef(false);
+
+  // Track previous volumes for comparison
+  const prevVolumesRef = useRef<string | null>(null);
+
+  // Define updateSnippetCountsMutation at the component level
+  const updateSnippetCountsMutation = useMutation(api.admin.updateSnippetCounts);
+  // Define addTestSnippetsMutation at the component level
+  const addTestSnippetsMutation = useMutation(api.testData.addTestSnippets);
+
+  // Define settings at the component level for the useEffect
+  const settings = useQuery(api.settings.getSettings);
+
+  // Add useEffect to update snippet counts on load - runs only once
   useEffect(() => {
-    console.log("Auth state:", { isLoaded, isSignedIn, userId: user?.id });
-  }, [isLoaded, isSignedIn, user]);
+    if (user?.id && !snippetCountsInitialized.current) {
+      snippetCountsInitialized.current = true;
+      updateSnippetCountsMutation({ clerkId: user.id });
+    }
+  }, [user?.id, updateSnippetCountsMutation]);
+
+  // Update languageVolumes state when settings or languages change - with safety checks
+  useEffect(() => {
+    if (settings?.volumes) {
+      // Stringify for deep comparison
+      const currentVolumesJson = JSON.stringify(settings.volumes);
+
+      // Only update if the data actually changed
+      if (currentVolumesJson !== prevVolumesRef.current) {
+        prevVolumesRef.current = currentVolumesJson;
+
+        // Cast to satisfy TypeScript
+        setLanguageVolumes(settings.volumes as any);
+      }
+    }
+  }, [settings?.volumes]);
 
   // Add memoized handlers for select changes
   const handleLanguageSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setSelectedLanguage(e.target.value as Language);
   }, []);
 
   const handleDifficultySelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     setSelectedDifficulty(e.target.value as Difficulty);
   }, []);
 
   const handleSnippetVolumeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     const value = parseInt(e.target.value);
     setNewSnippet((prev) => ({ ...prev, volume: value }));
   }, []);
 
   const handleSnippetIsValidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     const checked = e.target.checked;
     setNewSnippet((prev) => ({ ...prev, isValid: checked }));
   }, []);
 
   const handleEditSnippetIsValidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     const checked = e.target.checked;
     setEditingSnippet((prev: any) => ({ ...prev, isValid: checked }));
   }, []);
 
   // Update handlers to prevent focus loss
   const handleLanguageKeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = e.target.value;
     setNewLanguage((prev) => ({ ...prev, key: value }));
   }, []);
 
   const handleDisplayNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = e.target.value;
     setNewLanguage((prev) => ({ ...prev, displayName: value }));
   }, []);
 
-  const handleIconChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.preventDefault();
-    const value = e.target.value;
-    setNewLanguage((prev) => ({ ...prev, icon: value }));
-  }, []);
+  const handleIconChange = (language: string, icon: string) => {
+    setLanguageVolumes((prev) =>
+      prev.map((v) => {
+        if (v.language === language) {
+          return { ...v, icon } as any;
+        }
+        return v;
+      })
+    );
+    setIconEditValue("");
+  };
 
   const handleIconEditChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = e.target.value;
     setIconEditValue(value);
   }, []);
 
   const handleEditingSnippetChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = e.target.value;
     setEditingSnippet((prev: any) => ({ ...prev, code: value }));
   }, []);
 
   const handleCodeChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = e.target.value;
     setNewSnippet((prev) => ({ ...prev, code: value }));
   }, []);
 
   const handleExplanationChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = e.target.value;
     setNewSnippet((prev) => ({ ...prev, explanation: value }));
   }, []);
 
   const handleVolumeEditChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     const value = Math.max(1, parseInt(e.target.value) || 1);
     setVolumeEditValue(value);
   }, []);
@@ -183,7 +271,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   // Update the edit snippet handlers
   const handleEditingExplanationChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      e.preventDefault();
+      e.stopPropagation();
       const value = e.target.value;
       setEditingSnippet((prev: any) => ({ ...prev, explanation: value }));
     },
@@ -195,12 +283,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
   // Add volume change handler
   const handleVolumeSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.preventDefault();
+    e.stopPropagation();
     setSelectedVolume(parseInt(e.target.value));
   }, []);
 
+  const handleIconColorChange = (language: string, color: string) => {
+    setLanguageVolumes((prev) =>
+      prev.map((v) => {
+        if (v.language === language) {
+          return { ...v, iconColor: color } as any;
+        }
+        return v;
+      })
+    );
+  };
+
+  // Add back the original handleIconChange function for newLanguage
+  const handleNewLanguageIconChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.stopPropagation();
+    const value = e.target.value;
+    setNewLanguage((prev) => ({ ...prev, icon: value }));
+  }, []);
+
   const AdminContent = () => {
-    const settings = useQuery(api.settings.getSettings);
     const languages = useQuery(api.admin.getLanguages) as LanguageVolume[] | undefined;
     const snippets = useQuery(api.snippets.getAdminSnippets, {
       language: selectedLanguage,
@@ -221,22 +326,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const updateLanguageStatusMutation = useMutation(api.admin.updateLanguageStatus);
     const addLanguageVolumeMutation = useMutation(api.admin.addLanguageVolume);
     const updateLanguageIconMutation = useMutation(api.admin.updateLanguageIcon);
-    const updateSnippetCountsMutation = useMutation(api.admin.updateSnippetCounts);
-    const addTestSnippetsMutation = useMutation(api.testData.addTestSnippets);
     const [isUpdating, setIsUpdating] = useState(false);
     const [updateMessage, setUpdateMessage] = useState("");
 
-    // Add useEffect to update snippet counts on load
-    useEffect(() => {
-      if (user?.id) {
-        updateSnippetCountsMutation({ clerkId: user.id });
-      }
-    }, [user?.id, updateSnippetCountsMutation]);
+    // Optimize useQuery with useMemo to prevent unnecessary re-renders
+    const snippetsQueryArgs = useMemo(
+      () => ({
+        language: selectedLanguage,
+        difficulty: selectedDifficulty,
+        volume: selectedVolume,
+        clerkId: user?.id || "",
+      }),
+      [selectedLanguage, selectedDifficulty, selectedVolume, user?.id]
+    );
+
+    const analyticsQueryArgs = useMemo(
+      () => ({
+        clerkId: user?.id || "",
+      }),
+      [user?.id]
+    );
+
+    // Use the memoized query arguments
+    const memoizedSnippets = useQuery(api.snippets.getAdminSnippets, snippetsQueryArgs);
+    const memoizedAnalytics = useQuery(api.admin.getAnalytics, analyticsQueryArgs);
+
+    // Use the memoized queries instead of the original ones
+    const snippetsData = memoizedSnippets || [];
+    const analyticsData = memoizedAnalytics;
 
     // Move all useCallback hooks to the top level
     const handleAiEnabledChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
         const checked = e.target.checked;
         if (settings?.settings) {
           updateSettingsMutation({
@@ -253,7 +374,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleValidRatioChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
         const value = parseFloat(e.target.value);
         if (settings?.settings) {
           updateSettingsMutation({
@@ -270,7 +390,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleMaxPerRequestChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
         const value = parseInt(e.target.value);
         if (settings?.settings) {
           updateSettingsMutation({
@@ -287,7 +406,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleMinSnippetsChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
         const value = parseInt(e.target.value);
         if (settings?.settings) {
           updateSettingsMutation({
@@ -308,7 +426,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         difficulty: Difficulty,
         field: "time" | "snippets"
       ) => {
-        e.preventDefault();
         const value = parseInt(e.target.value);
         if (!isNaN(value) && settings?.settings) {
           const newSettings = {
@@ -337,7 +454,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     };
 
     // Handle unauthorized access or loading state
-    if (!user?.id || !settings || !snippets) {
+    if (!user?.id || !settings || !snippetsData) {
       return (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
@@ -375,8 +492,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       volumes: [],
     };
 
-    const snippetsData = snippets || [];
-
     const handleAddSnippet = async () => {
       try {
         await addSnippetMutation({
@@ -398,14 +513,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const handleCreateNewVolume = async (language: Language) => {
       try {
-        // Get the current icon for this language
+        // Get the current icon and icon color for this language
         const volume = settingsData.volumes.find((vol) => vol.language === language);
         const icon = volume?.icon || "Code2"; // Use existing icon or default to Code2
+        const iconColor = (volume as any)?.iconColor || "#FFFFFF"; // Use existing color or default to white
 
         await createNewVolumeMutation({
           language,
           clerkId: user?.id || "",
           icon,
+          iconColor,
         });
       } catch (error) {
         console.error("Error creating new volume:", error);
@@ -465,15 +582,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     };
 
     const handleUpdateLanguageVolume = async (language: string) => {
-      try {
-        await updateLanguageVolumeMutation({
-          language,
-          currentVolume: volumeEditValue,
-          clerkId: user?.id || "",
-        });
-        setEditingVolume(null);
-      } catch (error) {
-        console.error("Error updating language volume:", error);
+      const volume = languageVolumes.find((v) => v.language === language);
+      if (volume) {
+        try {
+          // Cast to any to work around TypeScript type issues
+          const params: any = {
+            language,
+            currentVolume: volume.currentVolume,
+            status: volume.status || "active",
+            iconColor: volume.iconColor || "#FFFFFF",
+            clerkId: user?.id || "",
+          };
+
+          await updateLanguageVolumeMutation(params);
+          setEditingVolume(null);
+        } catch (error) {
+          console.error("Error updating language volume:", error);
+        }
       }
     };
 
@@ -493,31 +618,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     };
 
     const handleAddLanguage = async () => {
-      try {
-        if (newLanguage.key && newLanguage.displayName) {
-          await addLanguageVolumeMutation({
-            language: newLanguage.key,
+      if (newLanguage.key && newLanguage.displayName) {
+        try {
+          // Cast to any to work around TypeScript type issues
+          const params: any = {
+            language: newLanguage.key.toLowerCase(),
             displayName: newLanguage.displayName,
             icon: newLanguage.icon,
+            iconColor: newLanguage.iconColor,
             clerkId: user?.id || "",
-          });
-          setNewLanguage({ key: "", displayName: "", icon: "Code2" });
-        }
-      } catch (error) {
-        console.error("Error adding language:", error);
-      }
-    };
+          };
 
-    const handleUpdateLanguageIcon = async (language: string) => {
-      try {
-        await updateLanguageIconMutation({
-          language,
-          icon: iconEditValue,
-          clerkId: user?.id || "",
-        });
-        setEditingIcon(null);
-      } catch (error) {
-        console.error("Error updating language icon:", error);
+          await addLanguageVolumeMutation(params);
+          setNewLanguage({ key: "", displayName: "", icon: "Code2", iconColor: "#FFFFFF" });
+        } catch (error) {
+          console.error("Error adding language:", error);
+        }
       }
     };
 
@@ -554,6 +670,57 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       }
     };
 
+    const handleUpdateLanguageIcon = async (language: string, iconColor?: string) => {
+      try {
+        // Find the current language volume to get the current color if not provided
+        const volume = languageVolumes.find((v) => v.language === language);
+        const colorToUse = iconColor || (volume as any)?.iconColor || "#FFFFFF";
+
+        // Update the params to include iconColor now that schema supports it
+        const params = {
+          language,
+          icon: iconEditValue,
+          iconColor: colorToUse, // Add iconColor parameter
+          clerkId: user?.id || "",
+        };
+
+        await updateLanguageIconMutation(params);
+        setEditingIcon(null);
+      } catch (error) {
+        console.error("Error updating language icon:", error);
+      }
+    };
+
+    const handleUpdateLanguageIconColor = async (language: string, newColor: string) => {
+      try {
+        // Find the current language volume
+        const volume = languageVolumes.find((v) => v.language === language);
+        if (volume) {
+          // Update the local state first for immediate feedback
+          setLanguageVolumes((prev) =>
+            prev.map((v) => {
+              if (v.language === language) {
+                return { ...v, iconColor: newColor } as any;
+              }
+              return v;
+            })
+          );
+
+          // Then update in the database - include iconColor now that the schema supports it
+          const params = {
+            language,
+            icon: volume.icon || "Code2", // Use current icon
+            iconColor: newColor, // Now included in the schema
+            clerkId: user?.id || "",
+          };
+
+          await updateLanguageIconMutation(params);
+        }
+      } catch (error) {
+        console.error("Error updating language icon color:", error);
+      }
+    };
+
     const renderAddSnippetModal = () => (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div
@@ -575,6 +742,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <select
                   value={selectedLanguage}
                   onChange={handleLanguageSelectChange}
+                  onClick={(e) => e.stopPropagation()}
                   className={`bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                   id="language-filter"
                   name="language-filter">
@@ -590,6 +758,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <select
                   value={selectedDifficulty}
                   onChange={handleDifficultySelectChange}
+                  onClick={(e) => e.stopPropagation()}
                   className={`bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                   id="difficulty-filter"
                   name="difficulty-filter">
@@ -603,6 +772,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <select
                   value={newSnippet.volume}
                   onChange={handleSnippetVolumeChange}
+                  onClick={(e) => e.stopPropagation()}
                   className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                   id="add-snippet-volume"
                   name="add-snippet-volume">
@@ -625,6 +795,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <textarea
                 value={newSnippet.code}
                 onChange={handleCodeChange}
+                onClick={(e) => e.stopPropagation()}
                 ref={codeEditorRef}
                 className={`w-full h-48 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 font-mono ${focusClasses}`}
                 placeholder="Enter code snippet here..."
@@ -639,6 +810,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   type="checkbox"
                   checked={newSnippet.isValid}
                   onChange={handleSnippetIsValidChange}
+                  onClick={(e) => e.stopPropagation()}
                   className="rounded bg-black/30"
                   id="add-snippet-valid"
                   name="add-snippet-valid"
@@ -652,6 +824,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               <textarea
                 value={newSnippet.explanation}
                 onChange={handleExplanationChange}
+                onClick={(e) => e.stopPropagation()}
                 ref={explanationEditorRef}
                 className={`w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                 placeholder="Explain why this code is valid/invalid..."
@@ -705,6 +878,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                         ?.language || editingSnippet.language
                     }
                     disabled
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                     id="edit-snippet-language"
                     name="edit-snippet-language"
@@ -716,6 +890,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     type="text"
                     value={editingSnippet.difficulty}
                     disabled
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                     id="edit-snippet-difficulty"
                     name="edit-snippet-difficulty"
@@ -727,6 +902,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     type="text"
                     value={editingSnippet.volume}
                     disabled
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
                     id="edit-snippet-volume"
                     name="edit-snippet-volume"
@@ -739,6 +915,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <textarea
                   value={editingSnippet.code}
                   onChange={handleEditingSnippetChange}
+                  onClick={(e) => e.stopPropagation()}
                   ref={editSnippetCodeRef}
                   className={`w-full h-64 font-mono text-xs bg-black/30 p-4 rounded-lg text-gray-300 ${focusClasses}`}
                   id="edit-snippet-code"
@@ -752,6 +929,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     type="checkbox"
                     checked={editingSnippet.isValid}
                     onChange={handleEditSnippetIsValidChange}
+                    onClick={(e) => e.stopPropagation()}
                     className="rounded bg-black/30"
                     id="edit-snippet-valid"
                     name="edit-snippet-valid"
@@ -765,6 +943,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                 <textarea
                   value={editingSnippet.explanation}
                   onChange={handleEditingExplanationChange}
+                  onClick={(e) => e.stopPropagation()}
                   ref={editSnippetExplanationRef}
                   className={`w-full h-24 bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                   id="edit-snippet-explanation"
@@ -831,6 +1010,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     type="checkbox"
                     checked={settingsData.settings.aiGeneration.enabled}
                     onChange={handleAiEnabledChange}
+                    onClick={(e) => e.stopPropagation()}
                     className="rounded bg-black/30"
                     id="enable-ai-generation"
                     name="enable-ai-generation"
@@ -847,6 +1027,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     step="0.1"
                     value={settingsData.settings.aiGeneration.validRatio}
                     onChange={handleValidRatioChange}
+                    onClick={(e) => e.stopPropagation()}
                     className="w-full"
                     id="valid-ratio-slider"
                     name="valid-ratio-slider"
@@ -869,6 +1050,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                       type="number"
                       value={settingsData.settings.aiGeneration.maxPerRequest}
                       onChange={handleMaxPerRequestChange}
+                      onClick={(e) => e.stopPropagation()}
                       min="1"
                       max="10"
                       className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
@@ -884,6 +1066,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                       type="number"
                       value={settingsData.settings.aiGeneration.minSnippetsBeforeGeneration}
                       onChange={handleMinSnippetsChange}
+                      onClick={(e) => e.stopPropagation()}
                       min="1"
                       max="20"
                       className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
@@ -897,7 +1080,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
             <div>
               <h3 className="text-lg mb-4">Language Volumes</h3>
-
               <div className="bg-black/30 p-4 rounded-lg mb-6">
                 <h4 className="text-sm text-gray-400 mb-4">Add New Language</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -923,25 +1105,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                       placeholder="e.g., JavaScript"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1">Icon</label>
-                    <div className="relative">
-                      <select
-                        value={newLanguage.icon}
-                        onChange={handleIconChange}
-                        ref={iconSelectRef}
-                        className="appearance-none w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 pr-10 focus:outline-none focus:ring-1 focus:ring-[#00FF94]">
-                        {availableIcons.map((icon) => (
-                          <option key={icon.name} value={icon.name}>
-                            {icon.name}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
                   <div className="flex items-end">
                     <button
                       onClick={handleAddLanguage}
@@ -952,18 +1115,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-4">
-                  {availableIcons.map((icon) => (
+                  {availableIcons.map((iconData) => (
                     <div
-                      key={icon.name}
+                      key={iconData.name}
                       className={`p-2 rounded-lg cursor-pointer ${
-                        newLanguage.icon === icon.name
+                        newLanguage.icon === iconData.name
                           ? "bg-[#00FF94] text-black"
                           : "bg-black/30 text-gray-300"
                       }`}
-                      onClick={() => setNewLanguage({ ...newLanguage, icon: icon.name })}>
+                      onClick={() => setNewLanguage({ ...newLanguage, icon: iconData.name })}>
                       <div className="flex items-center space-x-2">
-                        {icon.component}
-                        <span className="text-xs">{icon.name}</span>
+                        {newLanguage.icon === iconData.name
+                          ? getColoredIcon(iconData.name, newLanguage.iconColor || "#FFFFFF")
+                          : iconData.component}
+                        <span className="text-xs">{iconData.name}</span>
                       </div>
                     </div>
                   ))}
@@ -1069,7 +1234,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                                     Cancel
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateLanguageIcon(volume.language)}
+                                    onClick={() =>
+                                      handleUpdateLanguageIcon(
+                                        volume.language,
+                                        (volume as any)?.iconColor
+                                      )
+                                    }
                                     className="text-xs bg-[#00FF94] text-black px-2 py-1 rounded hover:bg-[#00CC77] transition-colors">
                                     Save
                                   </button>
@@ -1094,48 +1264,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                                   className="w-full bg-black/30 px-2 py-1 rounded-lg text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#00FF94]"
                                   id="icon-edit-select"
                                   name="icon-edit-select">
-                                  {availableIcons.map((icon) => (
-                                    <option key={icon.name} value={icon.name}>
-                                      {icon.name}
+                                  {availableIcons.map((iconData) => (
+                                    <option key={iconData.name} value={iconData.name}>
+                                      {iconData.name}
                                     </option>
                                   ))}
                                 </select>
                                 <div className="mt-2 flex flex-wrap gap-1">
-                                  {availableIcons.map((icon) => (
+                                  {availableIcons.map((iconData) => (
                                     <div
-                                      key={icon.name}
+                                      key={iconData.name}
                                       className={`p-1 rounded cursor-pointer ${
-                                        iconEditValue === icon.name
+                                        iconEditValue === iconData.name
                                           ? "bg-[#00FF94] text-black"
                                           : "bg-black/30 text-gray-300"
                                       }`}
-                                      onClick={() => setIconEditValue(icon.name)}>
-                                      {icon.component}
+                                      onClick={() => setIconEditValue(iconData.name)}>
+                                      {iconEditValue === iconData.name && volume
+                                        ? getColoredIcon(
+                                            iconData.name,
+                                            (volume as any).iconColor || "#FFFFFF"
+                                          )
+                                        : iconData.component}
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2 mt-1">
-                                {(() => {
-                                  const IconComponent =
-                                    volume.icon === "Braces"
-                                      ? Braces
-                                      : volume.icon === "FileCode"
-                                        ? FileCode
-                                        : volume.icon === "Terminal"
-                                          ? Terminal
-                                          : volume.icon === "Settings"
-                                            ? Settings
-                                            : volume.icon === "Database"
-                                              ? Database
-                                              : volume.icon === "Coffee"
-                                                ? Coffee
-                                                : volume.icon === "Hash"
-                                                  ? Hash
-                                                  : Code2;
-                                  return <IconComponent className="w-5 h-5" />;
-                                })()}
+                                {volume.icon &&
+                                  getColoredIcon(
+                                    volume.icon,
+                                    (volume as any).iconColor || "#FFFFFF"
+                                  )}
                                 <span className="text-sm">{volume.icon || "Code2"}</span>
                               </div>
                             )}
@@ -1180,6 +1341,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                               {volume.status || "active"}
                             </p>
                           </div>
+                          <div>
+                            <span className="text-sm text-gray-400">Icon Color</span>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <input
+                                type="color"
+                                value={(volume as any)?.iconColor || "#FFFFFF"}
+                                onChange={(e) =>
+                                  handleIconColorChange(volume.language, e.target.value)
+                                }
+                                className="w-full h-8 rounded cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <button
+                                onClick={() =>
+                                  handleUpdateLanguageIconColor(
+                                    volume.language,
+                                    (volume as any)?.iconColor || "#FFFFFF"
+                                  )
+                                }
+                                className="px-2 py-1 bg-[#00FF94] text-black rounded text-xs hover:bg-[#00CC77]">
+                                Save Color
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1205,6 +1390,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                           onChange={(e) =>
                             handleSettingsChangePreventDefault(e, difficulty as Difficulty, "time")
                           }
+                          onClick={(e) => e.stopPropagation()}
                           className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
                           id={`time-limit-${difficulty}`}
                           name={`time-limit-${difficulty}`}
@@ -1224,6 +1410,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                               "snippets"
                             )
                           }
+                          onClick={(e) => e.stopPropagation()}
                           className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 w-full"
                           id={`snippets-per-game-${difficulty}`}
                           name={`snippets-per-game-${difficulty}`}
@@ -1245,6 +1432,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           <select
             value={selectedLanguage}
             onChange={handleLanguageSelectChange}
+            onClick={(e) => e.stopPropagation()}
             className={`${
               isDarkMode ? "bg-[#1A1A1A] text-white" : "bg-white text-black"
             } border border-gray-300 rounded-lg px-4 py-2 ${focusClasses}`}>
@@ -1257,6 +1445,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           <select
             value={selectedDifficulty}
             onChange={handleDifficultySelectChange}
+            onClick={(e) => e.stopPropagation()}
             className={`${
               isDarkMode ? "bg-[#1A1A1A] text-white" : "bg-white text-black"
             } border border-gray-300 rounded-lg px-4 py-2 ${focusClasses}`}>
@@ -1267,6 +1456,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
           <select
             value={selectedVolume}
             onChange={handleVolumeSelectChange}
+            onClick={(e) => e.stopPropagation()}
             className={`${
               isDarkMode ? "bg-[#1A1A1A] text-white" : "bg-white text-black"
             } border border-gray-300 rounded-lg px-4 py-2 ${focusClasses}`}>
@@ -1307,7 +1497,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         )}
 
         <div className="space-y-4">
-          {snippets?.map((snippet) => (
+          {snippetsData.map((snippet) => (
             <div key={snippet._id} className="bg-black/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between p-4">
                 <div>
@@ -1348,9 +1538,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   </button>
                   <button
                     className="p-2 text-gray-400 hover:text-white transition-colors"
-                    onClick={() =>
-                      setExpandedSnippet(expandedSnippet === snippet._id ? null : snippet._id)
-                    }>
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedSnippet(expandedSnippet === snippet._id ? null : snippet._id);
+                    }}>
                     {expandedSnippet === snippet._id ? (
                       <ChevronUp className="w-4 h-4" />
                     ) : (
@@ -1390,7 +1581,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     );
 
     const renderAnalytics = () => {
-      if (!analytics) {
+      if (!analyticsData) {
         return (
           <div className="flex items-center justify-center p-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00FF94]"></div>
@@ -1399,7 +1590,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       }
 
       const { totalUsers, totalGames, difficultySummary, volumeSummary, levelSummary, languages } =
-        analytics;
+        analyticsData;
 
       // Convert difficulty summary object to array for rendering
       const difficultySummaryArray = difficultySummary

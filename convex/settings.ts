@@ -112,6 +112,7 @@ export const getSettings = query({
         lastAiGeneration: v.string(),
         status: v.optional(v.union(v.literal("active"), v.literal("paused"), v.literal("removed"))),
         icon: v.optional(v.string()),
+        iconColor: v.optional(v.string()),
       })
     ),
   }),
@@ -160,7 +161,7 @@ export const getSettings = query({
       volumes.map(async (vol) => {
         // Ensure language is normalized to lowercase for consistency
         const normalizedLanguage = vol.language.toLowerCase();
-        
+
         // Count all snippets for this language regardless of volume
         const snippets = await ctx.db
           .query("codeSnippets")
@@ -168,16 +169,20 @@ export const getSettings = query({
           .collect();
 
         // Count snippets by difficulty for diagnostic purposes
-        const easySnippets = snippets.filter(s => s.difficulty === "easy").length;
-        const mediumSnippets = snippets.filter(s => s.difficulty === "medium").length;
-        const hardSnippets = snippets.filter(s => s.difficulty === "hard").length;
+        const easySnippets = snippets.filter((s) => s.difficulty === "easy").length;
+        const mediumSnippets = snippets.filter((s) => s.difficulty === "medium").length;
+        const hardSnippets = snippets.filter((s) => s.difficulty === "hard").length;
 
-        console.log(`Found ${snippets.length} snippets for ${normalizedLanguage} (easy: ${easySnippets}, medium: ${mediumSnippets}, hard: ${hardSnippets})`);
+        console.log(
+          `Found ${snippets.length} snippets for ${normalizedLanguage} (easy: ${easySnippets}, medium: ${mediumSnippets}, hard: ${hardSnippets})`
+        );
 
         // Note: We can't update the database in a query function, so we'll just return the accurate count
         // If the count is wrong, it will be fixed when updateSnippetCounts is called
         if (vol.snippetCount !== snippets.length) {
-          console.log(`Snippet count mismatch for ${normalizedLanguage}: DB has ${vol.snippetCount}, actual count is ${snippets.length}`);
+          console.log(
+            `Snippet count mismatch for ${normalizedLanguage}: DB has ${vol.snippetCount}, actual count is ${snippets.length}`
+          );
         }
 
         return {
@@ -188,6 +193,7 @@ export const getSettings = query({
           lastAiGeneration: vol.lastAiGeneration,
           status: vol.status || "active", // Default to active for existing records
           icon: vol.icon, // Include the icon in the response
+          iconColor: vol.iconColor, // Include the iconColor in the response
         };
       })
     );
@@ -283,6 +289,7 @@ export const createNewVolume = mutation({
     language: v.string(),
     clerkId: v.string(),
     icon: v.optional(v.string()),
+    iconColor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Verify admin access
@@ -294,23 +301,38 @@ export const createNewVolume = mutation({
       .first();
 
     if (volume) {
+      // Just update the volume number for existing records
+      // (preserving existing icon and color)
       await ctx.db.patch(volume._id, {
         currentVolume: volume.currentVolume + 1,
         snippetCount: 0,
         aiGeneratedCount: 0,
         lastAiGeneration: new Date().toISOString(),
-        // Don't update the icon if it already exists
+        // Don't update the icon or iconColor if it already exists
       });
     } else {
-      await ctx.db.insert("languageVolumes", {
+      // Create a properly typed insert data object with all required fields
+      const insertData = {
         language: args.language as Language,
         currentVolume: 1,
         snippetCount: 0,
         aiGeneratedCount: 0,
         lastAiGeneration: new Date().toISOString(),
-        status: "active",
-        icon: args.icon,
-      });
+        status: "active" as "active" | "paused" | "removed",
+      };
+
+      // Add icon if provided
+      if (args.icon) {
+        (insertData as any).icon = args.icon;
+      }
+
+      // Add iconColor if provided
+      if (args.iconColor) {
+        (insertData as any).iconColor = args.iconColor;
+      }
+
+      // Create a new language volume
+      await ctx.db.insert("languageVolumes", insertData);
     }
   },
 });
