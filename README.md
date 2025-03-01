@@ -178,3 +178,5 @@ This project is open source and available under the MIT License.
 - Clerk for authentication
 - React and Vite teams
 - All contributors and players!
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/cfb39bea-4f30-42f7-b6ed-07f2415c3e9d/deploy-status)](https://app.netlify.com/sites/playmerge/deploys)
