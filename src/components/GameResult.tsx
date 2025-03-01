@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { Share2, RefreshCw, Twitter, Linkedin, BookOpen } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Share2, RefreshCw, Twitter, Linkedin, BookOpen, X } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { Link } from "react-router-dom";
+import Confetti from "react-confetti";
 
 interface GameResultProps {
   score: number;
@@ -34,6 +35,7 @@ const GameResult: React.FC<GameResultProps> = ({
   const [tempName, setTempName] = useState(playerName);
   const [displayName, setDisplayName] = useState(playerName);
   const maxRounds = propMaxRounds || (level === 1 ? 3 : level === 2 ? 5 : 7);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const updateName = useMutation(api.users.updateAnonymousUserName);
 
@@ -76,8 +78,54 @@ const GameResult: React.FC<GameResultProps> = ({
     }
   };
 
+  // Initialize confetti when a perfect score is achieved
+  useEffect(() => {
+    if (score === maxRounds) {
+      setShowConfetti(true);
+
+      // Auto-hide confetti after 5 seconds
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 8000);
+
+      // Handle escape key press
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setShowConfetti(false);
+        }
+      };
+
+      window.addEventListener("keydown", handleKeyDown);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [score, maxRounds]);
+
   return (
     <div className="max-w-md mx-auto text-center">
+      {/* Confetti overlay */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          <Confetti
+            width={window.innerWidth}
+            height={window.innerHeight}
+            recycle={false}
+            numberOfPieces={500}
+          />
+          {/* Close button - placed in a corner with pointer-events-auto to make it clickable */}
+          <div className="absolute top-4 right-4 pointer-events-auto">
+            <button
+              onClick={() => setShowConfetti(false)}
+              className="bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <h2 className="text-3xl mb-4">Game Over!</h2>
       <div className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} rounded-lg p-6 mb-6 shadow-lg`}>
         <div className="flex items-center justify-center space-x-2 mb-4">
