@@ -1398,14 +1398,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         );
       }
 
-      const {
-        totalUsers,
-        totalGames,
-        difficultySummary,
-        volumeSummary,
-        levelSummary,
-        languageVolumes,
-      } = analytics;
+      const { totalUsers, totalGames, difficultySummary, volumeSummary, levelSummary, languages } =
+        analytics;
+
+      // Convert difficulty summary object to array for rendering
+      const difficultySummaryArray = difficultySummary
+        ? Object.entries(difficultySummary).map(([difficulty, count]) => ({
+            difficulty,
+            count,
+            averageScore: 0, // Since we don't have this data, default to 0
+          }))
+        : [];
+
+      // Convert volume summary object to array for rendering
+      const volumeSummaryArray = volumeSummary
+        ? Object.entries(volumeSummary).map(([volume, count]) => ({
+            volume: Number(volume),
+            count,
+            averageScore: 0, // Since we don't have this data, default to 0
+          }))
+        : [];
+
+      // Convert level summary object to array for rendering
+      const levelSummaryArray = levelSummary
+        ? Object.entries(levelSummary).map(([level, count]) => ({
+            level: Number(level),
+            count,
+            averageScore: 0, // Since we don't have this data, default to 0
+          }))
+        : [];
 
       // Helper function to format numbers
       const formatNumber = (num: number) => {
@@ -1428,7 +1449,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
               </div>
               <div className="bg-black/30 p-6 rounded-lg">
                 <h4 className="text-gray-400 text-sm mb-2">Language Volumes</h4>
-                <p className="text-3xl text-[#00FF94] font-bold">{languageVolumes.length}</p>
+                <p className="text-3xl text-[#00FF94] font-bold">
+                  {languages ? languages.length : 0}
+                </p>
               </div>
             </div>
           </div>
@@ -1446,7 +1469,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   </tr>
                 </thead>
                 <tbody>
-                  {difficultySummary.map((item, index) => (
+                  {difficultySummaryArray.map((item, index) => (
                     <tr key={index} className="border-t border-gray-800">
                       <td className="p-4 capitalize">{item.difficulty}</td>
                       <td className="p-4">{item.count}</td>
@@ -1473,7 +1496,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     </tr>
                   </thead>
                   <tbody>
-                    {volumeSummary.map((item, index) => (
+                    {volumeSummaryArray.map((item, index) => (
                       <tr key={index} className="border-t border-gray-800">
                         <td className="p-4">{item.volume}</td>
                         <td className="p-4">{item.count}</td>
@@ -1498,7 +1521,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                     </tr>
                   </thead>
                   <tbody>
-                    {levelSummary.map((item, index) => (
+                    {levelSummaryArray.map((item, index) => (
                       <tr key={index} className="border-t border-gray-800">
                         <td className="p-4">{item.level}</td>
                         <td className="p-4">{item.count}</td>
@@ -1524,13 +1547,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   </tr>
                 </thead>
                 <tbody>
-                  {languageVolumes.map((item, index) => (
-                    <tr key={index} className="border-t border-gray-800">
-                      <td className="p-4 capitalize">{item.language}</td>
-                      <td className="p-4">{item.volumeCount}</td>
-                      <td className="p-4">{item.snippetCount}</td>
-                    </tr>
-                  ))}
+                  {languages &&
+                    languages.map((item, index) => (
+                      <tr key={index} className="border-t border-gray-800">
+                        <td className="p-4 capitalize">{item.language}</td>
+                        <td className="p-4">{item.currentVolume}</td>
+                        <td className="p-4">{item.snippetCount}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
