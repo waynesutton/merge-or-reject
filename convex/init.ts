@@ -1,6 +1,8 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { LANGUAGES } from "../src/types";
+
+// Default languages to initialize
+const DEFAULT_LANGUAGES = ["typescript", "javascript", "python", "rust", "go", "sql", "react"];
 
 // Initialize game settings and default volumes if they don't exist
 export const initializeSettings = mutation({
@@ -33,7 +35,7 @@ export const initializeSettings = mutation({
     }
 
     // Initialize default volumes for each language if they don't exist
-    for (const language of Object.keys(LANGUAGES)) {
+    for (const language of DEFAULT_LANGUAGES) {
       const existingVolume = await ctx.db
         .query("languageVolumes")
         .withIndex("by_language", (q) => q.eq("language", language))

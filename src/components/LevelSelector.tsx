@@ -18,9 +18,15 @@ interface LevelSelectorProps {
   onSelect: (level: Level) => void;
   onBack: () => void;
   isDarkMode: boolean;
+  languageName?: string;
 }
 
-const LevelSelector: React.FC<LevelSelectorProps> = ({ onSelect, onBack, isDarkMode }) => {
+const LevelSelector: React.FC<LevelSelectorProps> = ({
+  onSelect,
+  onBack,
+  isDarkMode,
+  languageName,
+}) => {
   const settings = useQuery(api.settings.getSettings);
 
   if (!settings) {
@@ -55,7 +61,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ onSelect, onBack, isDarkM
   return (
     <div className="flex flex-col justify-center min-h-[calc(100vh-16rem)]">
       <div className="max-w-2xl mx-auto text-center">
-        <h2 className="text-3xl mb-8">Select Difficulty</h2>
+        <h2 className="text-3xl mb-8">
+          {languageName ? `${languageName}: Select Difficulty` : "Select Difficulty"}
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {levels.map(({ level, time, snippets, difficulty }) => (
             <button

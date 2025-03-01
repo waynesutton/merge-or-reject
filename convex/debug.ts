@@ -1,7 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Doc } from "./_generated/dataModel";
-import { LANGUAGES } from "../src/types";
 
 export const getLanguageVolumes = query({
   args: {},
@@ -14,15 +13,15 @@ export const getLanguageVolumes = query({
 });
 
 export const addMissingLanguageVolumes = mutation({
-  args: {},
+  args: {
+    languages: v.array(v.string()),
+  },
   returns: v.array(v.string()),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const existingVolumes = await ctx.db.query("languageVolumes").collect();
     const existingLanguages = new Set(existingVolumes.map((volume) => volume.language));
 
-    const missingLanguages = Object.keys(LANGUAGES).filter(
-      (language) => !existingLanguages.has(language)
-    );
+    const missingLanguages = args.languages.filter((language) => !existingLanguages.has(language));
 
     const addedLanguages = [];
 

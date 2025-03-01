@@ -26,6 +26,7 @@ import type * as init from "../init.js";
 import type * as scores from "../scores.js";
 import type * as settings from "../settings.js";
 import type * as snippets from "../snippets.js";
+import type * as testData from "../testData.js";
 import type * as types from "../types.js";
 import type * as users from "../users.js";
 
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   scores: typeof scores;
   settings: typeof settings;
   snippets: typeof snippets;
+  testData: typeof testData;
   types: typeof types;
   users: typeof users;
 }>;

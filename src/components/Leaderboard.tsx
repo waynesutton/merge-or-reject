@@ -1,6 +1,6 @@
 import React from "react";
-import { Trophy, Clock, BookOpen } from "lucide-react";
-import { GameScore, LANGUAGES } from "../types";
+import { Trophy, Clock } from "lucide-react";
+import { GameScore } from "../types";
 
 interface LeaderboardProps {
   scores: GameScore[];
@@ -21,6 +21,11 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
 }) => {
   const limitedScores = scores.slice(0, limit);
   const Icon = icon === "trophy" ? Trophy : Clock;
+
+  // Helper function to capitalize the first letter
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
 
   return (
     <div className={`${isDarkMode ? "bg-[#1A1A1A]" : "bg-white"} rounded-lg p-6 shadow-lg`}>
@@ -44,8 +49,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   {score.playerName}
                 </button>
                 <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                  {LANGUAGES[score.language as keyof typeof LANGUAGES] || score.language} · Level{" "}
-                  {score.level}
+                  {capitalizeFirstLetter(score.language)} · Level {score.level}
                 </p>
               </div>
             </div>

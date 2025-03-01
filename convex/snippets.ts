@@ -15,6 +15,7 @@ export const getAdminSnippets = query({
   args: {
     language: v.string(),
     difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+    volume: v.number(),
     clerkId: v.string(),
   },
   returns: v.array(
@@ -43,9 +44,10 @@ export const getAdminSnippets = query({
 
     return await ctx.db
       .query("codeSnippets")
-      .withIndex("by_language_difficulty", (q) =>
-        q.eq("language", args.language as Language).eq("difficulty", args.difficulty)
+      .withIndex("by_language_volume", (q) =>
+        q.eq("language", args.language as Language).eq("volume", args.volume)
       )
+      .filter((q) => q.eq(q.field("difficulty"), args.difficulty))
       .collect();
   },
 });
@@ -91,7 +93,7 @@ export const _generateAISnippets = internalAction({
         {
           role: "system",
           content:
-            'You are an expert developer, code review specialist, and coding instructor with deep expertise in TypeScript, JavaScript, Python, Java, C++, Rust, SQL, Go, React, MySQL, database optimization, Convex.dev, LLMs, AI, and full-stack development. Your role is to generate AI-generated code snippets for a game where developers test their ability to spot bugs and validate code quality.\n\nFor each request, you will:\n\t1.\tGenerate a code snippet based on the specified programming language and difficulty level (Easy, Medium, Hard).\n\t2.\tEnsure the code follows best practices for that language.\n\t3.\tIf invalid code is requested, introduce subtle but identifiable issues (syntax errors, logic flaws, security vulnerabilities, performance bottlenecks).\n\t4.\tProvide a clear explanation of why the code is valid or invalid, including a hint that helps the player understand what to look for.\n\t5.\tKeep snippets concise yet meaningful, ensuring they are realistic and engaging for players.\n\nDifficulty Levels:\n\t•\tEasy: Basic syntax, common patterns, and clear mistakes.\n\t•\tMedium: Intermediate concepts with slightly more subtle issues.\n\t•\tHard: Advanced patterns, edge cases, security concerns, performance considerations, and AI-generated hallucinations.\n\nResponse Format (JSON):\n\n{\n  "snippets": [\n    {\n      "code": "<generated code snippet>",\n      "isValid": true/false,\n      "explanation": "<detailed reasoning about validity or issues, with a hint>",\n      "tags": ["tag1", "tag2"]\n    }\n  ]\n}\n\nEnsure the game remains challenging but fair, helping developers improve their code review skills while making quick decisions under time pressure. The hints should guide players without immediately giving away the answer, allowing them to engage critically with the code.',
+            'You are an expert developer, code review specialist, and coding instructor with deep expertise in TypeScript, JavaScript, Python, Java, C++, Rust, SQL, Go, React, MySQL, database optimization, Convex.dev, LLMs, AI, and full-stack development. Your role is to generate AI-generated code snippets for a game where developers test their ability to spot bugs and validate code quality.\n\nFor each request, you will:\n\t1.\tGenerate a code snippet based on the specified programming language and difficulty level (Easy, Medium, Hard).\n\t2.\tEnsure the code follows best practices for that language.\n\t3.\tIf invalid code is requested, introduce subtle but identifiable issues (syntax errors, logic flaws, security vulnerabilities, performance bottlenecks).\n\t4.\tProvide a brief hint about why the code might be valid or invalid, without explicitly stating the answer. The hint should guide the user towards identifying potential issues or best practices on their own, encouraging them to analyze the code and make an informed decision.\n\t5.\tKeep snippets concise yet meaningful, ensuring they are realistic and engaging for players.\n\nDifficulty Levels:\n\t•\tEasy: Basic syntax, common patterns, and clear mistakes.\n\t•\tMedium: Intermediate concepts with slightly more subtle issues.\n\t•\tHard: Advanced patterns, edge cases, security concerns, performance considerations, and AI-generated hallucinations.\n\nResponse Format\n\n{\n  "code": "<generated code snippet>",\n  "explanation": "<detailed reasoning about validity or issues, with a hint>"\n}\n\nEnsure the game remains challenging but fair, helping developers improve their code review skills while making quick decisions under time pressure. The hints should guide players without immediately giving away the answer, allowing them to engage critically with the code.',
         },
         {
           role: "user",

@@ -9,16 +9,18 @@
  * - Improved timer handling to use admin-configured time limits
  * - Added proper navigation between game states
  * - Fixed anonymous user creation and game start flow (2024-02-26)
+ * - Fixed snippet loading by using by_language_difficulty index instead of by_language_volume
+ *   to ensure correct snippet counts and availability for all languages
  */
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import confetti from "canvas-confetti";
 import { PowerGlitch } from "powerglitch";
-import { Level, Language, LEVEL_TIMES, LEVEL_ROUNDS, LANGUAGES } from "../types";
+import { Level, Language, LEVEL_TIMES, LEVEL_ROUNDS } from "../types";
 import CodeDisplay from "./CodeDisplay";
 import LevelSelector from "./LevelSelector";
 import Timer from "./Timer";
@@ -48,6 +50,14 @@ interface GameState {
   showPartyEmoji: boolean;
 }
 
+// Add type for language volume from settings
+interface LanguageVolume {
+  language: string;
+  currentVolume: number;
+  snippetCount: number;
+  status?: "active" | "paused" | "removed";
+}
+
 const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,6 +69,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   const startGame = useMutation(api.game.startGame);
   const completeGame = useMutation(api.game.submitAnswer);
   const saveGameScore = useMutation(api.game.saveGameScore);
+  const querySettings = useQuery(api.settings.getSettings);
 
   // Get language from URL query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -94,6 +105,12 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   >([]);
   const [timeLimit, setTimeLimit] = useState<number>(0);
   const [userAnswers, setUserAnswers] = useState<boolean[]>([]);
+
+  // Get language name from database
+  const languageName = useQuery(
+    api.game.getLanguageName,
+    gameState.language ? { language: gameState.language } : "skip"
+  );
 
   // If language is provided in URL, prepare for level selection
   useEffect(() => {
@@ -360,6 +377,36 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     }
 
     try {
+      // Get settings to validate language status
+      const settings = querySettings;
+      if (!settings || !settings.volumes) {
+        throw new Error("Settings not available");
+      }
+
+      // Find the language volume settings
+      const languageVolume = settings.volumes.find(
+        (vol: LanguageVolume) => vol.language === gameState.language
+      );
+      if (!languageVolume) {
+        throw new Error("Language not configured");
+      }
+
+      // Check if language is active and has snippets
+      if (languageVolume.status !== "active" && languageVolume.status !== undefined) {
+        throw new Error("Language is not currently active");
+      }
+
+      // Get the difficulty level
+      const difficulty = selectedLevel === 1 ? "easy" : selectedLevel === 2 ? "medium" : "hard";
+      const snippetsNeeded = settings.settings.snippetsPerGame[difficulty];
+
+      // Check if we have enough snippets for this difficulty level
+      if (!languageVolume.snippetCount || languageVolume.snippetCount < snippetsNeeded) {
+        throw new Error(
+          `Not enough snippets available for ${difficulty} difficulty (need ${snippetsNeeded})`
+        );
+      }
+
       // Create anonymous user first if needed
       let currentUserId = userId;
       if (!currentUserId) {
@@ -374,7 +421,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         userId: currentUserId,
         language: gameState.language,
         level: selectedLevel,
-        volume: 1, // Default to volume 1 for now
+        volume: languageVolume.currentVolume || 1,
       });
 
       // Store game data and use the timeLimit configured in admin settings
@@ -385,13 +432,13 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       setGameState((prev) => ({
         ...prev,
         level: selectedLevel,
-        timeLeft: gameResult.timeLimit, // Use server-provided time limit
+        timeLeft: gameResult.timeLimit,
         gameStarted: true,
       }));
     } catch (error) {
       console.error("Failed to start game:", error);
-      // Show error to user
-      alert("This game is not ready yet.");
+      // Show more specific error to user
+      alert(error instanceof Error ? error.message : "This game is not ready yet.");
       // Reset game state
       resetGameState();
     }
@@ -465,6 +512,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
           onSelect={handleLevelSelect}
           onBack={() => navigate("/")}
           isDarkMode={isDarkMode}
+          languageName={languageName}
         />
       </>
     );
@@ -517,7 +565,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
       {gameState.language && (
         <h2
           className={`text-center text-2xl font-normal ${isDarkMode ? "text-white" : "text-gray-800"}`}>
-          {LANGUAGES[gameState.language] || gameState.language} -{" "}
+          {languageName || gameState.language} -{" "}
           {gameState.level === 1 ? "Easy" : gameState.level === 2 ? "Medium" : "Hard"}
         </h2>
       )}

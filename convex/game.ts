@@ -1,3 +1,17 @@
+/**
+ * game.ts
+ *
+ * Game-related operations for starting games, submitting answers, and tracking results.
+ *
+ * Changes made:
+ * - Added detailed validation for game creation
+ * - Improved error handling for missing snippets
+ * - Updated snippet selection to use by_language_difficulty index
+ * - Added game recap and slug generation
+ * - Fixed returns validator to avoid validation errors with document fields
+ * - Added fallback strategy for fetching snippets when specific difficulty has too few (2024-07-10)
+ */
+
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Language } from "../src/types";
@@ -14,15 +28,8 @@ export const startGame = mutation({
   },
   returns: v.object({
     gameId: v.id("games"),
-    snippets: v.array(
-      v.object({
-        _id: v.id("codeSnippets"),
-        code: v.string(),
-        language: v.string(),
-        explanation: v.string(),
-        isValid: v.boolean(),
-      })
-    ),
+    // Use v.any() to avoid validation errors with document fields
+    snippets: v.array(v.any()),
     timeLimit: v.number(),
   }),
   handler: async (ctx, args) => {
@@ -34,22 +41,102 @@ export const startGame = mutation({
     const difficulty = args.level === 1 ? "easy" : args.level === 2 ? "medium" : "hard";
     const snippetsNeeded = settings.snippetsPerGame[difficulty];
 
-    const snippets = await ctx.db
+    // Normalize language to lowercase for consistency
+    const normalizedLanguage = args.language.toLowerCase();
+
+    console.log(
+      `Fetching ${snippetsNeeded} ${difficulty} snippets for ${normalizedLanguage} (original: ${args.language})`
+    );
+
+    // Check language volume exists
+    const languageVolume = await ctx.db
+      .query("languageVolumes")
+      .withIndex("by_language", (q) => q.eq("language", normalizedLanguage))
+      .unique();
+
+    if (!languageVolume) {
+      console.error(`Language volume not found for ${normalizedLanguage}`);
+      throw new Error(`Language ${normalizedLanguage} not configured`);
+    }
+
+    console.log(
+      `Found language volume: ${languageVolume.language}, snippetCount: ${languageVolume.snippetCount}, status: ${languageVolume.status || "active"}`
+    );
+
+    // Count all snippets by difficulty first for diagnostic purposes
+    const easySnippets = await ctx.db
       .query("codeSnippets")
-      .withIndex("by_language_volume", (q) =>
-        q.eq("language", args.language as Language).eq("volume", args.volume)
+      .withIndex("by_language_difficulty", (q) =>
+        q.eq("language", normalizedLanguage).eq("difficulty", "easy")
       )
-      .filter((q) => q.eq(q.field("difficulty"), difficulty))
+      .collect();
+
+    const mediumSnippets = await ctx.db
+      .query("codeSnippets")
+      .withIndex("by_language_difficulty", (q) =>
+        q.eq("language", normalizedLanguage).eq("difficulty", "medium")
+      )
+      .collect();
+
+    const hardSnippets = await ctx.db
+      .query("codeSnippets")
+      .withIndex("by_language_difficulty", (q) =>
+        q.eq("language", normalizedLanguage).eq("difficulty", "hard")
+      )
+      .collect();
+
+    console.log(`Snippet counts for ${normalizedLanguage}: 
+      Easy: ${easySnippets.length}
+      Medium: ${mediumSnippets.length}
+      Hard: ${hardSnippets.length}
+    `);
+
+    // Try to get the requested difficulty first
+    let snippets = await ctx.db
+      .query("codeSnippets")
+      .withIndex("by_language_difficulty", (q) =>
+        q.eq("language", normalizedLanguage).eq("difficulty", difficulty)
+      )
       .take(snippetsNeeded);
 
+    console.log(
+      `Retrieved ${snippets.length} snippets for ${normalizedLanguage} with ${difficulty} difficulty`
+    );
+
+    // If we don't have enough snippets of the requested difficulty, try to fetch from other difficulties
     if (snippets.length < snippetsNeeded) {
-      throw new Error("Not enough snippets available for this game");
+      console.log(
+        `Not enough ${difficulty} snippets. Attempting to use snippets from other difficulties.`
+      );
+
+      // Get all snippets for this language, regardless of difficulty
+      const allSnippets = await ctx.db
+        .query("codeSnippets")
+        .withIndex("by_language_difficulty", (q) => q.eq("language", normalizedLanguage))
+        .collect();
+
+      console.log(`Found ${allSnippets.length} total snippets for ${normalizedLanguage}`);
+
+      // If we have enough snippets in total, use them
+      if (allSnippets.length >= snippetsNeeded) {
+        // Shuffle the snippets array to get a random selection
+        const shuffled = [...allSnippets].sort(() => 0.5 - Math.random());
+        snippets = shuffled.slice(0, snippetsNeeded);
+        console.log(`Using ${snippets.length} mixed-difficulty snippets instead`);
+      } else {
+        console.error(
+          `Not enough snippets for ${normalizedLanguage} in any difficulty. Found: ${allSnippets.length}, needed: ${snippetsNeeded}`
+        );
+        throw new Error(
+          `Not enough snippets available for ${normalizedLanguage} (need ${snippetsNeeded}, found ${allSnippets.length}). Please try another language or contact an administrator.`
+        );
+      }
     }
 
     // Create new game
     const gameId = await ctx.db.insert("games", {
       userId: args.userId,
-      language: args.language as Language,
+      language: normalizedLanguage,
       level: args.level,
       volume: args.volume,
       score: 0,
@@ -61,16 +148,13 @@ export const startGame = mutation({
       createdAt: new Date().toISOString(),
     });
 
+    // Get time limit from settings
+    const timeLimit = settings.timeLimits[difficulty];
+
     return {
       gameId,
-      snippets: snippets.map((s) => ({
-        _id: s._id,
-        code: s.code,
-        language: s.language,
-        explanation: s.explanation,
-        isValid: s.isValid,
-      })),
-      timeLimit: settings.timeLimits[difficulty],
+      snippets,
+      timeLimit,
     };
   },
 });
@@ -263,5 +347,16 @@ export const saveGameScore = mutation({
     });
 
     return null;
+  },
+});
+
+export const getLanguageName = query({
+  args: {
+    language: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    // Capitalize first letter and format language name
+    return args.language.charAt(0).toUpperCase() + args.language.slice(1);
   },
 });

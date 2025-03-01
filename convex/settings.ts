@@ -153,18 +153,44 @@ export const getSettings = query({
 
     // Get volumes
     const volumes = await ctx.db.query("languageVolumes").collect();
-    console.log("Queried volumes:", volumes);
+    console.log(`Found ${volumes.length} language volumes`);
 
-    // Map volumes to the expected format and remove system fields
-    const mappedVolumes = volumes.map((vol) => ({
-      language: vol.language,
-      currentVolume: vol.currentVolume,
-      snippetCount: vol.snippetCount,
-      aiGeneratedCount: vol.aiGeneratedCount,
-      lastAiGeneration: vol.lastAiGeneration,
-      status: vol.status || "active", // Default to active for existing records
-      icon: vol.icon, // Include the icon in the response
-    }));
+    // For each language, count snippets directly using the by_language_difficulty index
+    const volumesWithCounts = await Promise.all(
+      volumes.map(async (vol) => {
+        // Ensure language is normalized to lowercase for consistency
+        const normalizedLanguage = vol.language.toLowerCase();
+        
+        // Count all snippets for this language regardless of volume
+        const snippets = await ctx.db
+          .query("codeSnippets")
+          .withIndex("by_language_difficulty", (q) => q.eq("language", normalizedLanguage))
+          .collect();
+
+        // Count snippets by difficulty for diagnostic purposes
+        const easySnippets = snippets.filter(s => s.difficulty === "easy").length;
+        const mediumSnippets = snippets.filter(s => s.difficulty === "medium").length;
+        const hardSnippets = snippets.filter(s => s.difficulty === "hard").length;
+
+        console.log(`Found ${snippets.length} snippets for ${normalizedLanguage} (easy: ${easySnippets}, medium: ${mediumSnippets}, hard: ${hardSnippets})`);
+
+        // Note: We can't update the database in a query function, so we'll just return the accurate count
+        // If the count is wrong, it will be fixed when updateSnippetCounts is called
+        if (vol.snippetCount !== snippets.length) {
+          console.log(`Snippet count mismatch for ${normalizedLanguage}: DB has ${vol.snippetCount}, actual count is ${snippets.length}`);
+        }
+
+        return {
+          language: normalizedLanguage, // Use normalized language name
+          currentVolume: vol.currentVolume,
+          snippetCount: snippets.length, // Use direct count from codeSnippets
+          aiGeneratedCount: vol.aiGeneratedCount,
+          lastAiGeneration: vol.lastAiGeneration,
+          status: vol.status || "active", // Default to active for existing records
+          icon: vol.icon, // Include the icon in the response
+        };
+      })
+    );
 
     // Return formatted settings without system fields
     return {
@@ -175,7 +201,7 @@ export const getSettings = query({
         maxSnippetsPerVolume: settings.maxSnippetsPerVolume ?? 50,
         aiGeneration: settings.aiGeneration,
       },
-      volumes: mappedVolumes,
+      volumes: volumesWithCounts,
     };
   },
 });

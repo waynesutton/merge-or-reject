@@ -1,27 +1,15 @@
+/**
+ * types.ts
+ *
+ * Changes made:
+ * - Removed default LANGUAGES object and predefined Language type
+ * - Updated Language type to be a string type instead of a union
+ * - Kept all other type definitions and constants unchanged
+ */
+
 import { Id } from "../convex/_generated/dataModel";
 
-export type Language =
-  | "typescript"
-  | "javascript"
-  | "python"
-  | "java"
-  | "cpp"
-  | "rust"
-  | "go"
-  | "sql"
-  | "react";
-
-export const LANGUAGES: Record<Language, string> = {
-  typescript: "TypeScript",
-  javascript: "JavaScript",
-  python: "Python",
-  java: "Java",
-  cpp: "C++",
-  rust: "Rust",
-  go: "Go",
-  sql: "SQL",
-  react: "React",
-};
+export type Language = string;
 
 export type Level = 1 | 2 | 3;
 

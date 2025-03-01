@@ -26,12 +26,20 @@ import {
   Hash,
   Database,
 } from "lucide-react";
-import { LANGUAGES, LEVEL_TIMES, Language, Difficulty } from "../types";
+import { LEVEL_TIMES, Language, Difficulty } from "../types";
 import Toaster from "./Toaster";
 
 interface AdminDashboardProps {
   isDarkMode: boolean;
   onThemeToggle: () => void;
+}
+
+interface LanguageVolume {
+  language: string;
+  currentVolume: number;
+  snippetCount: number;
+  aiGeneratedCount: number;
+  lastAiGeneration: string;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeToggle }) => {
@@ -62,6 +70,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   });
   const [editingIcon, setEditingIcon] = useState<string | null>(null);
   const [iconEditValue, setIconEditValue] = useState<string>("Code2");
+  const [selectedVolume, setSelectedVolume] = useState<number>(1);
 
   // Add refs for inputs to maintain focus
   const languageKeyRef = useRef<HTMLInputElement>(null);
@@ -184,13 +193,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
   // Add additional CSS classes where needed
   const focusClasses = "focus:outline-none focus:ring-1 focus:ring-[#00FF94]";
 
+  // Add volume change handler
+  const handleVolumeSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    setSelectedVolume(parseInt(e.target.value));
+  }, []);
+
   const AdminContent = () => {
     const settings = useQuery(api.settings.getSettings);
+    const languages = useQuery(api.admin.getLanguages) as LanguageVolume[] | undefined;
     const snippets = useQuery(api.snippets.getAdminSnippets, {
       language: selectedLanguage,
       difficulty: selectedDifficulty,
+      volume: selectedVolume,
       clerkId: user?.id || "",
-    } as any);
+    });
     const analytics = useQuery(api.admin.getAnalytics, {
       clerkId: user?.id || "",
     });
@@ -204,6 +221,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     const updateLanguageStatusMutation = useMutation(api.admin.updateLanguageStatus);
     const addLanguageVolumeMutation = useMutation(api.admin.addLanguageVolume);
     const updateLanguageIconMutation = useMutation(api.admin.updateLanguageIcon);
+    const updateSnippetCountsMutation = useMutation(api.admin.updateSnippetCounts);
+    const addTestSnippetsMutation = useMutation(api.testData.addTestSnippets);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [updateMessage, setUpdateMessage] = useState("");
+
+    // Add useEffect to update snippet counts on load
+    useEffect(() => {
+      if (user?.id) {
+        updateSnippetCountsMutation({ clerkId: user.id });
+      }
+    }, [user?.id, updateSnippetCountsMutation]);
 
     // Move all useCallback hooks to the top level
     const handleAiEnabledChange = useCallback(
@@ -302,6 +330,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       },
       [updateSettingsMutation, settings?.settings, user?.id]
     );
+
+    // Helper function to capitalize first letter
+    const capitalizeFirstLetter = (str: string) => {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    };
 
     // Handle unauthorized access or loading state
     if (!user?.id || !settings || !snippets) {
@@ -488,6 +521,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
       }
     };
 
+    const handleUpdateSnippetCounts = async () => {
+      try {
+        if (!user?.id) return;
+        setIsUpdating(true);
+        await updateSnippetCountsMutation({ clerkId: user.id });
+        setUpdateMessage("Snippet counts updated successfully");
+        setTimeout(() => setUpdateMessage(""), 3000);
+      } catch (error) {
+        console.error("Error updating snippet counts:", error);
+        setUpdateMessage("Error updating snippet counts");
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    const handleAddTestSnippets = async () => {
+      try {
+        if (!user?.id) return;
+        setIsUpdating(true);
+        setUpdateMessage("Adding test snippets...");
+        const result = await addTestSnippetsMutation({ clerkId: user.id });
+        setUpdateMessage(
+          `Added ${result.addedCount} test snippets for ${result.languages.join(", ")}`
+        );
+        setTimeout(() => setUpdateMessage(""), 5000);
+      } catch (error) {
+        console.error("Error adding test snippets:", error);
+        setUpdateMessage("Error adding test snippets");
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
     const renderAddSnippetModal = () => (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div
@@ -512,9 +578,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   className={`bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300 ${focusClasses}`}
                   id="language-filter"
                   name="language-filter">
-                  {Object.entries(LANGUAGES).map(([key, name]) => (
-                    <option key={key} value={key}>
-                      {name}
+                  {languages?.map((lang: LanguageVolume) => (
+                    <option key={lang.language} value={lang.language}>
+                      {capitalizeFirstLetter(lang.language)}
                     </option>
                   ))}
                 </select>
@@ -635,8 +701,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
                   <input
                     type="text"
                     value={
-                      LANGUAGES[editingSnippet.language as keyof typeof LANGUAGES] ||
-                      editingSnippet.language
+                      languages?.find((lang) => lang.language === editingSnippet.language)
+                        ?.language || editingSnippet.language
                     }
                     disabled
                     className="w-full bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
@@ -726,8 +792,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
     const renderSettings = () => {
       return (
-        <div>
-          <div className="space-y-8">
+        <div className="space-y-8">
+          <div className="flex justify-between items-center">
+            <h2 className={`text-2xl font-bold ${isDarkMode ? "text-white" : "text-gray-800"}`}>
+              Settings
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleUpdateSnippetCounts}
+                disabled={isUpdating}
+                className={`px-4 py-2 text-white rounded ${
+                  isUpdating ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
+                }`}>
+                {isUpdating ? "Updating..." : "Update Snippet Counts"}
+              </button>
+
+              <button
+                onClick={handleAddTestSnippets}
+                disabled={isUpdating}
+                className={`px-4 py-2 text-white rounded ${
+                  isUpdating ? "bg-gray-400" : "bg-green-500 hover:bg-green-600"
+                }`}>
+                {isUpdating ? "Adding..." : "Add Test Snippets"}
+              </button>
+            </div>
+            {updateMessage && (
+              <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
+                {updateMessage}
+              </div>
+            )}
+          </div>
+          <div className="space-y-6">
             <div>
               <h3 className="text-lg mb-4">AI Generation</h3>
               <div className="space-y-6">
@@ -877,9 +972,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
 
               <div className="space-y-6">
                 {settingsData.volumes.map((volume) => {
-                  const languageName =
-                    LANGUAGES[volume.language as keyof typeof LANGUAGES] ||
-                    volume.language.charAt(0).toUpperCase() + volume.language.slice(1);
+                  const languageName = capitalizeFirstLetter(volume.language);
 
                   return (
                     <div key={volume.language} className="space-y-4">
@@ -1147,54 +1240,63 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
     };
 
     const renderCodeSnippets = () => (
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl">Code Snippets</h2>
-          <div className="flex items-center space-x-4">
-            <select
-              value={selectedLanguage}
-              onChange={handleLanguageSelectChange}
-              className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
-              id="language-filter"
-              name="language-filter">
-              {Object.entries(LANGUAGES).map(([key, name]) => (
-                <option key={key} value={key}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedDifficulty}
-              onChange={handleDifficultySelectChange}
-              className="bg-black/30 px-4 py-2 rounded-lg text-sm text-gray-300"
-              id="difficulty-filter"
-              name="difficulty-filter">
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-            <button
-              onClick={handleGenerateSnippets}
-              disabled={isGenerating || !settingsData.settings.aiGeneration.enabled}
-              className={`flex items-center space-x-2 px-4 py-2 ${
-                settingsData.settings.aiGeneration.enabled
-                  ? "bg-[#00FF94] text-black hover:bg-[#00CC77]"
-                  : "bg-gray-700 text-gray-400 cursor-not-allowed"
-              } rounded-lg transition-colors`}>
-              {isGenerating ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Bot className="w-4 h-4" />
-              )}
-              <span>Generate</span>
-            </button>
-            <button
-              onClick={() => setShowAddSnippet(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
-              <Plus className="w-4 h-4" />
-              <span>Add Snippet</span>
-            </button>
-          </div>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-wrap gap-4 items-center mb-6">
+          <select
+            value={selectedLanguage}
+            onChange={handleLanguageSelectChange}
+            className={`${
+              isDarkMode ? "bg-[#1A1A1A] text-white" : "bg-white text-black"
+            } border border-gray-300 rounded-lg px-4 py-2 ${focusClasses}`}>
+            {languages?.map((lang: LanguageVolume) => (
+              <option key={lang.language} value={lang.language}>
+                {capitalizeFirstLetter(lang.language)}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedDifficulty}
+            onChange={handleDifficultySelectChange}
+            className={`${
+              isDarkMode ? "bg-[#1A1A1A] text-white" : "bg-white text-black"
+            } border border-gray-300 rounded-lg px-4 py-2 ${focusClasses}`}>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+          <select
+            value={selectedVolume}
+            onChange={handleVolumeSelectChange}
+            className={`${
+              isDarkMode ? "bg-[#1A1A1A] text-white" : "bg-white text-black"
+            } border border-gray-300 rounded-lg px-4 py-2 ${focusClasses}`}>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((vol) => (
+              <option key={vol} value={vol}>
+                Volume {vol}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleGenerateSnippets}
+            disabled={isGenerating || !settingsData.settings.aiGeneration.enabled}
+            className={`flex items-center space-x-2 px-4 py-2 ${
+              settingsData.settings.aiGeneration.enabled
+                ? "bg-[#00FF94] text-black hover:bg-[#00CC77]"
+                : "bg-gray-700 text-gray-400 cursor-not-allowed"
+            } rounded-lg transition-colors`}>
+            {isGenerating ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Bot className="w-4 h-4" />
+            )}
+            <span>Generate</span>
+          </button>
+          <button
+            onClick={() => setShowAddSnippet(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-[#00FF94] text-black rounded-lg hover:bg-[#00CC77] transition-colors">
+            <Plus className="w-4 h-4" />
+            <span>Add Snippet</span>
+          </button>
         </div>
 
         {generationError && (
@@ -1205,12 +1307,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ isDarkMode, onThemeTogg
         )}
 
         <div className="space-y-4">
-          {snippetsData.map((snippet) => (
+          {snippets?.map((snippet) => (
             <div key={snippet._id} className="bg-black/30 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between p-4">
                 <div>
                   <div className="flex items-center space-x-3">
-                    <span className="text-[#00FF94] font-mono">{LANGUAGES[selectedLanguage]}</span>
+                    <span className="text-[#00FF94] font-mono">
+                      {capitalizeFirstLetter(selectedLanguage)}
+                    </span>
                     <span className="text-gray-400">·</span>
                     <span className="text-gray-400">Volume {snippet.volume}</span>
                     <span className="text-gray-400">·</span>

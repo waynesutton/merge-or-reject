@@ -90,138 +90,108 @@ export const getAnalytics = query({
   args: {
     clerkId: v.string(),
   },
-  returns: v.object({
-    totalUsers: v.number(),
-    totalGames: v.number(),
-    difficultySummary: v.array(
-      v.object({
-        difficulty: v.string(),
-        count: v.number(),
-        averageScore: v.number(),
-      })
-    ),
-    volumeSummary: v.array(
-      v.object({
-        volume: v.number(),
-        count: v.number(),
-        averageScore: v.number(),
-      })
-    ),
-    levelSummary: v.array(
-      v.object({
-        level: v.number(),
-        count: v.number(),
-        averageScore: v.number(),
-      })
-    ),
-    languageVolumes: v.array(
-      v.object({
-        language: v.string(),
-        volumeCount: v.number(),
-        snippetCount: v.number(),
-      })
-    ),
-  }),
+  returns: v.any(),
   handler: async (ctx, args) => {
-    try {
-      // Verify admin access
-      await requireAdmin(ctx, args.clerkId);
-      console.log(`Admin verified for analytics: ${args.clerkId}`);
+    // Verify admin access
+    requireAdmin(ctx, args.clerkId);
 
-      // Get total users
+    try {
+      console.log("Retrieving analytics data...");
+
+      // Get all users
       const users = await ctx.db.query("users").collect();
-      const totalUsers = users.length;
 
       // Get all games
       const games = await ctx.db.query("games").collect();
-      const totalGames = games.length;
 
-      // Initialize data structures for different summaries
-      const difficultyMap = new Map<string, { count: number; totalScore: number }>();
-      const volumeMap = new Map<number, { count: number; totalScore: number }>();
-      const levelMap = new Map<number, { count: number; totalScore: number }>();
+      // Get all language volumes
+      const languageVolumes = await ctx.db.query("languageVolumes").collect();
+      console.log(`Found ${languageVolumes.length} language volumes`);
 
-      // Process games data
-      for (const game of games) {
-        // Process difficulty data
-        const diffStats = difficultyMap.get(game.difficulty) || { count: 0, totalScore: 0 };
-        diffStats.count++;
-        diffStats.totalScore += game.score;
-        difficultyMap.set(game.difficulty, diffStats);
+      // Count snippets for each language directly
+      const languageData = await Promise.all(
+        languageVolumes.map(async (volume) => {
+          const normalizedLanguage = volume.language.toLowerCase();
+          console.log(`Counting snippets for language: ${normalizedLanguage}`);
 
-        // Process volume data
-        const volumeStats = volumeMap.get(game.volume) || { count: 0, totalScore: 0 };
-        volumeStats.count++;
-        volumeStats.totalScore += game.score;
-        volumeMap.set(game.volume, volumeStats);
+          // Count snippets using by_language_difficulty index
+          const snippets = await ctx.db
+            .query("codeSnippets")
+            .withIndex("by_language_difficulty", (q) => q.eq("language", normalizedLanguage))
+            .collect();
 
-        // Process level data
-        const levelStats = levelMap.get(game.level) || { count: 0, totalScore: 0 };
-        levelStats.count++;
-        levelStats.totalScore += game.score;
-        levelMap.set(game.level, levelStats);
-      }
+          // Count snippets by difficulty for diagnostic purposes
+          const easyCount = snippets.filter((s) => s.difficulty === "easy").length;
+          const mediumCount = snippets.filter((s) => s.difficulty === "medium").length;
+          const hardCount = snippets.filter((s) => s.difficulty === "hard").length;
 
-      // Get language volumes data
-      const languageVolumesData = await ctx.db.query("languageVolumes").collect();
+          console.log(
+            `Found ${snippets.length} snippets for ${normalizedLanguage} (easy: ${easyCount}, medium: ${mediumCount}, hard: ${hardCount})`
+          );
 
-      // Get all code snippets to calculate accurate snippet counts
-      const codeSnippets = await ctx.db.query("codeSnippets").collect();
+          // Note: We can't update the database in a query function, so we'll just return the accurate count
+          // If the count is wrong, it will be fixed when updateSnippetCounts is called
+          if (volume.snippetCount !== snippets.length) {
+            console.log(
+              `Snippet count mismatch for ${normalizedLanguage}: DB has ${volume.snippetCount}, actual count is ${snippets.length}`
+            );
+          }
 
-      // Calculate snippets per language
-      const snippetsByLanguage = new Map<string, number>();
-      for (const snippet of codeSnippets) {
-        const count = snippetsByLanguage.get(snippet.language) || 0;
-        snippetsByLanguage.set(snippet.language, count + 1);
-      }
+          // Return processed data
+          return {
+            ...volume,
+            language: normalizedLanguage, // Use normalized language name
+            snippetCount: snippets.length, // Ensure we're using the actual count from the query
+            difficultyCounts: {
+              easy: easyCount,
+              medium: mediumCount,
+              hard: hardCount,
+            },
+          };
+        })
+      );
 
-      // Format difficulty summary
-      const difficultySummary = Array.from(difficultyMap.entries()).map(([difficulty, stats]) => ({
-        difficulty,
-        count: stats.count,
-        averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
-      }));
+      // Get difficulty, volume, and level summaries from games
+      const difficultySummary = {
+        easy: games.filter((g) => g.difficulty === "easy").length,
+        medium: games.filter((g) => g.difficulty === "medium").length,
+        hard: games.filter((g) => g.difficulty === "hard").length,
+      };
 
-      // Format volume summary
-      const volumeSummary = Array.from(volumeMap.entries()).map(([volume, stats]) => ({
-        volume,
-        count: stats.count,
-        averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
-      }));
+      const volumeSummary = games.reduce(
+        (acc, game) => {
+          acc[game.volume] = (acc[game.volume] || 0) + 1;
+          return acc;
+        },
+        {} as Record<number, number>
+      );
 
-      // Format level summary
-      const levelSummary = Array.from(levelMap.entries()).map(([level, stats]) => ({
-        level,
-        count: stats.count,
-        averageScore: stats.count > 0 ? stats.totalScore / stats.count : 0,
-      }));
+      const levelSummary = games.reduce(
+        (acc, game) => {
+          acc[game.level] = (acc[game.level] || 0) + 1;
+          return acc;
+        },
+        {} as Record<number, number>
+      );
 
-      // Format language volumes with accurate snippet counts
-      const languageVolumes = languageVolumesData.map((volume) => ({
-        language: volume.language,
-        volumeCount: volume.currentVolume,
-        snippetCount: snippetsByLanguage.get(volume.language) || 0, // Use actual snippet count from codeSnippets table
-      }));
-
-      console.log(`Analytics data retrieved successfully for ${args.clerkId}`);
-
+      // Return all analytics data
       return {
-        totalUsers,
-        totalGames,
+        totalUsers: users.length,
+        totalGames: games.length,
+        languages: languageData,
         difficultySummary,
         volumeSummary,
         levelSummary,
-        languageVolumes,
       };
     } catch (error) {
-      console.error("Error getting analytics data:", error);
-      throw error;
+      console.error("Error retrieving analytics:", error);
+      throw new Error("Failed to retrieve analytics data");
     }
   },
 });
 
 /**
- * Get code snippets stats - admin only
+ * Get snippet statistics - admin only
  */
 export const getSnippetsStats = query({
   args: {
@@ -239,38 +209,54 @@ export const getSnippetsStats = query({
     ),
   }),
   handler: async (ctx, args) => {
+    // Verify admin access
+    await requireAdmin(ctx, args.clerkId);
+
     try {
-      // Verify admin access
-      await requireAdmin(ctx, args.clerkId);
+      console.log("Retrieving snippet statistics...");
 
-      const snippets = await ctx.db.query("codeSnippets").collect();
-      const totalSnippets = snippets.length;
+      // Get all language volumes to determine which languages to count
+      const languageVolumes = await ctx.db.query("languageVolumes").collect();
+      console.log(`Found ${languageVolumes.length} language volumes`);
 
-      const languageMap = new Map<string, { total: number; valid: number; invalid: number }>();
-      for (const snippet of snippets) {
-        const stats = languageMap.get(snippet.language) || { total: 0, valid: 0, invalid: 0 };
-        stats.total++;
-        if (snippet.isValid) {
-          stats.valid++;
-        } else {
-          stats.invalid++;
-        }
-        languageMap.set(snippet.language, stats);
-      }
+      // Count snippets for each language directly
+      const snippetsByLanguage = await Promise.all(
+        languageVolumes.map(async (volume) => {
+          const normalizedLanguage = volume.language.toLowerCase();
+          console.log(`Counting snippets for language: ${normalizedLanguage}`);
 
-      const snippetsByLanguage = Array.from(languageMap.entries()).map(([language, stats]) => ({
-        language,
-        count: stats.total,
-        validCount: stats.valid,
-        invalidCount: stats.invalid,
-      }));
+          // Count snippets using by_language_difficulty index
+          const snippets = await ctx.db
+            .query("codeSnippets")
+            .withIndex("by_language_difficulty", (q) => q.eq("language", normalizedLanguage))
+            .collect();
+
+          // Count valid and invalid snippets
+          const validCount = snippets.filter((s) => s.isValid).length;
+          const invalidCount = snippets.filter((s) => !s.isValid).length;
+
+          console.log(
+            `Found ${snippets.length} snippets for ${normalizedLanguage} (valid: ${validCount}, invalid: ${invalidCount})`
+          );
+
+          return {
+            language: normalizedLanguage,
+            count: snippets.length,
+            validCount,
+            invalidCount,
+          };
+        })
+      );
+
+      // Calculate total snippet count
+      const totalSnippets = snippetsByLanguage.reduce((sum, lang) => sum + lang.count, 0);
 
       return {
         totalSnippets,
         snippetsByLanguage,
       };
     } catch (error) {
-      console.error("Error getting snippet stats:", error);
+      console.error("Error getting snippet statistics:", error);
       throw error;
     }
   },
@@ -290,7 +276,27 @@ export const deleteSnippet = mutation({
       // Verify admin access
       await requireAdmin(ctx, args.clerkId);
 
+      // Get the snippet to know its language
+      const snippet = await ctx.db.get(args.snippetId);
+      if (!snippet) {
+        throw new Error("Snippet not found");
+      }
+
+      // Delete the snippet
       await ctx.db.delete(args.snippetId);
+
+      // Update language volume snippet count
+      const languageVolume = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", snippet.language))
+        .unique();
+
+      if (languageVolume) {
+        await ctx.db.patch(languageVolume._id, {
+          snippetCount: Math.max(0, languageVolume.snippetCount - 1),
+        });
+      }
+
       console.log(`Admin ${args.clerkId} deleted snippet ${args.snippetId}`);
       return null;
     } catch (error) {
@@ -333,6 +339,18 @@ export const addSnippet = mutation({
         createdAt: new Date().toISOString(),
       });
 
+      // Update language volume snippet count
+      const languageVolume = await ctx.db
+        .query("languageVolumes")
+        .withIndex("by_language", (q) => q.eq("language", args.language))
+        .unique();
+
+      if (languageVolume) {
+        await ctx.db.patch(languageVolume._id, {
+          snippetCount: languageVolume.snippetCount + 1,
+        });
+      }
+
       console.log(`Admin ${args.clerkId} added snippet ${snippetId}`);
       return snippetId;
     } catch (error) {
@@ -367,10 +385,10 @@ export const updateLanguageVolume = mutation({
         throw new Error(`Language volume for ${args.language} not found`);
       }
 
-      // Count snippets to ensure accurate snippet count
+      // Count all snippets for this language regardless of volume
       const snippets = await ctx.db
         .query("codeSnippets")
-        .withIndex("by_language_volume", (q) => q.eq("language", args.language))
+        .withIndex("by_language_difficulty", (q) => q.eq("language", args.language))
         .collect();
 
       const snippetCount = snippets.length;
@@ -513,6 +531,84 @@ export const updateLanguageIcon = mutation({
       return null;
     } catch (error) {
       console.error("Error updating language icon:", error);
+      throw error;
+    }
+  },
+});
+
+export const getLanguages = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("languageVolumes"),
+      _creationTime: v.number(),
+      language: v.string(),
+      currentVolume: v.float64(),
+      snippetCount: v.float64(),
+      aiGeneratedCount: v.float64(),
+      lastAiGeneration: v.string(),
+      status: v.optional(v.union(v.literal("active"), v.literal("paused"), v.literal("removed"))),
+      icon: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx) => {
+    return await ctx.db.query("languageVolumes").collect();
+  },
+});
+
+/**
+ * Update snippet counts for all languages - admin only
+ */
+export const updateSnippetCounts = mutation({
+  args: {
+    clerkId: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    try {
+      // Verify admin access
+      await requireAdmin(ctx, args.clerkId);
+
+      console.log("Beginning snippet count update for all languages");
+
+      // Get all language volumes
+      const languageVolumes = await ctx.db.query("languageVolumes").collect();
+      console.log(`Found ${languageVolumes.length} language volumes to update`);
+
+      // Update each language volume with the correct count
+      for (const volume of languageVolumes) {
+        // Ensure language is normalized to lowercase for consistency
+        const normalizedLanguage = volume.language.toLowerCase();
+        console.log(`Updating count for language: ${normalizedLanguage}`);
+
+        // Count all snippets for this language using by_language_difficulty index
+        const snippets = await ctx.db
+          .query("codeSnippets")
+          .withIndex("by_language_difficulty", (q) => q.eq("language", normalizedLanguage))
+          .collect();
+
+        // Count snippets by difficulty for diagnostic purposes
+        const easyCount = snippets.filter((s) => s.difficulty === "easy").length;
+        const mediumCount = snippets.filter((s) => s.difficulty === "medium").length;
+        const hardCount = snippets.filter((s) => s.difficulty === "hard").length;
+
+        console.log(
+          `Found ${snippets.length} snippets for ${normalizedLanguage} (easy: ${easyCount}, medium: ${mediumCount}, hard: ${hardCount})`
+        );
+
+        // Update the language volume with the correct count
+        await ctx.db.patch(volume._id, {
+          snippetCount: snippets.length,
+          language: normalizedLanguage, // Ensure language is stored in lowercase
+        });
+
+        console.log(`Updated ${normalizedLanguage} snippet count to ${snippets.length}`);
+      }
+
+      console.log("Finished updating all language snippet counts");
+      return null;
+    } catch (error) {
+      console.error("Error updating snippet counts:", error);
       throw error;
     }
   },
