@@ -37,6 +37,10 @@ Merge or Reject is an open source game powered by [Convex](https://convex.link/p
 - Instant feedback and detailed explanations
 - Skip option for challenging snippets
 - Visual effects and celebrations
+- Mobile-friendly swipe gestures
+- Keyboard shortcuts for quick actions
+- Interactive card animations
+- Visual feedback for swipe actions
 
 ### User Features
 
@@ -48,6 +52,10 @@ Merge or Reject is an open source game powered by [Convex](https://convex.link/p
 - Share scores on social media
 - Global leaderboards
 - Recent games feed
+- Mobile-optimized interface
+- Swipe gesture support
+- Visual swipe indicators
+- Interactive tutorial overlay
 
 ### Admin Features
 
@@ -75,6 +83,8 @@ Merge or Reject is an open source game powered by [Convex](https://convex.link/p
 - Lucide icons for React
 - Canvas Confetti
 - PowerGlitch effects
+- Framer Motion for animations
+- React Swipeable for touch gestures
 
 ### Backend
 
@@ -114,19 +124,19 @@ convex/
 
 ```
 src/
-├── App.tsx
+├── App.tsx                    # Main application component
 ├── components/
-│   ├── GameContainer.tsx
-│   ├── GameResult.tsx
-│   ├── ScoresPage.tsx
-│   ├── CodeDisplay.tsx
-│   ├── Timer.tsx
-│   ├── HomePage.tsx
-│   ├── AdminDashboard.tsx
-│   ├── Header.tsx
-│   └── Footer.tsx
+│   ├── GameContainer.tsx      # Main game container with swipe logic
+│   ├── GameResult.tsx         # Game completion screen
+│   ├── ScoresPage.tsx         # Leaderboards and scores
+│   ├── CodeDisplay.tsx        # Code snippet display with animations
+│   ├── Timer.tsx              # Game timer component
+│   ├── HomePage.tsx           # Landing page
+│   ├── AdminDashboard.tsx     # Admin control panel
+│   ├── Header.tsx             # Navigation header
+│   └── Footer.tsx             # Site footer
 └── types/
-    └── index.ts
+    └── index.ts               # TypeScript type definitions
 ```
 
 ## 🚀 Getting Started

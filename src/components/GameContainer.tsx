@@ -537,6 +537,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   if (!gameState.gameStarted) {
     return (
       <>
+        <div className="fixed inset-0 -z-10">
+          <div className="relative h-full w-full">
+            <div className="absolute h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+          </div>
+        </div>
         <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <LevelSelector
           onSelect={handleLevelSelect}
@@ -551,6 +556,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   if (gameState.gameOver) {
     return (
       <>
+        <div className="fixed inset-0 -z-10">
+          <div className="relative h-full w-full">
+            <div className="absolute h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+          </div>
+        </div>
         <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <GameResult
           score={gameState.score}
@@ -572,6 +582,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   if (snippets.length === 0 || gameState.currentIndex >= snippets.length) {
     return (
       <>
+        <div className="fixed inset-0 -z-10">
+          <div className="relative h-full w-full">
+            <div className="absolute h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+          </div>
+        </div>
         <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <GameResult
           score={gameState.score}
@@ -591,6 +606,11 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
 
   return (
     <div className="space-y-8 pb-24 pt-5">
+      <div className="fixed inset-0 -z-10">
+        <div className="relative h-full w-full">
+          <div className="absolute h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
+        </div>
+      </div>
       <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
       {gameState.language && (
         <h2
