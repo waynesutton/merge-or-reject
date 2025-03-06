@@ -17,6 +17,7 @@
     "@types/uuid": "^10.0.0",
     "canvas-confetti": "^1.9.3",
     "convex": "^1.19.2",
+    "framer-motion": "^12.4.10",
     "lucide-react": "^0.475.0",
     "openai": "^4.28.0",
     "powerglitch": "^2.4.0",

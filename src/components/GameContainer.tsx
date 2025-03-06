@@ -27,6 +27,8 @@ import LevelSelector from "./LevelSelector";
 import Timer from "./Timer";
 import GameResult from "./GameResult";
 import Header from "./Header";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 
 interface GameContainerProps {
   isDarkMode: boolean;
@@ -515,6 +517,23 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     touchEventOptions: { passive: false },
   });
 
+  const [showHint, setShowHint] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  const [opacity, setOpacity] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Add this useEffect to hide the hint after 5 seconds
+  useEffect(() => {
+    if (showHint) {
+      const timer = setTimeout(() => {
+        setShowHint(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showHint]);
+
   if (!gameState.gameStarted) {
     return (
       <>
@@ -586,12 +605,76 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         isDarkMode={isDarkMode}
       />
       {snippets.length > gameState.currentIndex && (
-        <div {...swipeHandlers}>
-          <CodeDisplay
-            code={snippets[gameState.currentIndex].code}
-            explanation={snippets[gameState.currentIndex].explanation}
-            isDarkMode={isDarkMode}
-          />
+        <div className="flex-1 overflow-auto" {...swipeHandlers}>
+          <div className="relative min-h-full">
+            <AnimatePresence>
+              {showHint && (
+                <motion.div
+                  className="absolute inset-0 bg-black/70 z-10 flex items-center justify-center"
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}>
+                  <div className="text-center p-6 rounded-lg relative">
+                    <button
+                      onClick={() => setShowHint(false)}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-white">
+                      <X className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-2xl font-bold mb-4">Swipe to Review</h2>
+                    <div className="flex justify-center gap-16 mb-6">
+                      <div className="flex flex-col items-center">
+                        <ArrowLeft className="w-12 h-12 text-red-500 mb-2" />
+                        <span>Swipe Left to Reject</span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <ArrowRight className="w-12 h-12 text-green-500 mb-2" />
+                        <span>Swipe Right to Merge</span>
+                      </div>
+                    </div>
+                    <p>Swipe anywhere or use the buttons below</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              ref={cardRef}
+              className="min-h-full"
+              animate={{
+                x: isDragging ? dragOffset : 0,
+                rotate: isDragging ? rotation : 0,
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+              <CodeDisplay
+                code={snippets[gameState.currentIndex].code}
+                explanation={snippets[gameState.currentIndex].explanation}
+                isDarkMode={isDarkMode}
+                isDragging={isDragging}
+                dragOffset={dragOffset}
+                rotation={rotation}
+                opacity={opacity}
+              />
+            </motion.div>
+
+            {isDragging && (
+              <>
+                {dragOffset > 0 && (
+                  <div
+                    className="fixed top-1/2 left-4 transform -translate-y-1/2 bg-green-500/80 rounded-full p-3"
+                    style={{ opacity }}>
+                    <Check className="w-8 h-8" />
+                  </div>
+                )}
+                {dragOffset < 0 && (
+                  <div
+                    className="fixed top-1/2 right-4 transform -translate-y-1/2 bg-red-500/80 rounded-full p-3"
+                    style={{ opacity }}>
+                    <X className="w-8 h-8" />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
       <div className="fixed bottom-0 left-0 w-full py-4 px-6 flex justify-center items-center bg-white dark:bg-[#121212] shadow-md">
