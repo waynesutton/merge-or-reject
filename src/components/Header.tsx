@@ -20,13 +20,14 @@ import { Home, Code2, Trophy, LogOut } from "lucide-react";
 
 interface HeaderProps {
   isDarkMode: boolean;
+  onThemeToggle: () => void;
   clerk?: {
     signOut: () => Promise<void>;
     user: any;
   };
 }
 
-const Header: React.FC<HeaderProps> = ({ isDarkMode, clerk }) => {
+const Header: React.FC<HeaderProps> = ({ isDarkMode, onThemeToggle, clerk }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === "/";
