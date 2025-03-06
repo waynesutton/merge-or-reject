@@ -25,6 +25,7 @@ import {
 import { Language } from "../types";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { ConvexNudge } from "@convex-nudge/react";
 
 interface LanguageSelectorProps {
   onSelect: (language: string) => void;
@@ -111,20 +112,20 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onSelect, onBack, i
   return (
     <div className="max-w-4xl mx-auto text-center">
       <p className="text-4xl font-normal">
-        Are you smarter than AI?<br></br>
+        Tinder but for code reviews. "The Game"<br></br>
         <span className={`text-sm ml-2 text-[#EE342E]`}>
-          <span className="text-lg pt-5">VOL 1: Challenge OpenAI gpt-4</span>
+          <span className="text-lg pt-5">
+            {/*  <span className="text-[#ffffff]">Test your vibe coding skills against AI. </span>  */}
+            VOL 1: Challenge OpenAI gpt-4
+          </span>
         </span>
       </p>
       <p className={`mt-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"} mb-8`}>
-        <span className="text-[#ffffff]">Select your language, review code snippets, and </span>
         <span className="text-[#ffffff]">
-          {" "}
-          <span className="text-[#17A34A]">Merge</span> (correct) or{" "}
-        </span>
-        <span className="text-[#EE342E]">Reject</span>{" "}
-        <span className="text-[#ffffff]">
-          (broken).<br></br> Test your vibe coding skills against AI.
+          Evaluate code snippets: swipe right to <span className="text-[#17A34A]">Merge</span>{" "}
+          (valid) or left to <span className="text-[#EE342E]">Reject</span> (invalid) on mobile.{" "}
+          <br />
+          On desktop, use keyboard shortcuts for faster review to play Merge.
         </span>
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

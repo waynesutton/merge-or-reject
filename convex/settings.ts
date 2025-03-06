@@ -160,7 +160,7 @@ export const getSettings = query({
     const volumesWithCounts = await Promise.all(
       volumes.map(async (vol) => {
         // Ensure language is normalized to lowercase for consistency
-        const normalizedLanguage = vol.language.toLowerCase();
+        const normalizedLanguage = vol.language.toLowerCase().replace("c++", "cpp");
 
         // Count all snippets for this language regardless of volume
         const snippets = await ctx.db

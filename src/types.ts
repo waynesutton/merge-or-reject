@@ -32,7 +32,7 @@ export const LANGUAGES: Record<string, string> = {
   go: "Go",
   rust: "Rust",
   csharp: "C#",
-  "c++": "C++",
+  Cpp: "c++",
   react: "React",
   sql: "SQL",
 };

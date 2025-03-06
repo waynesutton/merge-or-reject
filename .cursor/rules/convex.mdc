@@ -1,7 +1,7 @@
 ---
 description: Expereinced Convex and Clerk developer
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Convex guidelines
 ## Function guidelines

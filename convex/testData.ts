@@ -234,7 +234,7 @@ export const addTestSnippets = mutation({
     // For each language, add snippets for each difficulty
     for (const language of languages) {
       // Ensure the language is consistently normalized to lowercase
-      const normalizedLanguage = language.toLowerCase();
+      const normalizedLanguage = language.toLowerCase().replace("c++", "cpp");
       console.log(`Processing language: ${normalizedLanguage} (original: ${language})`);
 
       // Check if language volume exists

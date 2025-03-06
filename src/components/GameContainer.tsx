@@ -20,6 +20,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import confetti from "canvas-confetti";
 import { PowerGlitch } from "powerglitch";
+import { useSwipeable } from "react-swipeable";
 import { Level, Language, LEVEL_TIMES, LEVEL_ROUNDS } from "../types";
 import CodeDisplay from "./CodeDisplay";
 import LevelSelector from "./LevelSelector";
@@ -29,7 +30,6 @@ import Header from "./Header";
 
 interface GameContainerProps {
   isDarkMode: boolean;
-  onThemeToggle: () => void;
 }
 
 interface GameState {
@@ -58,7 +58,7 @@ interface LanguageVolume {
   status?: "active" | "paused" | "removed";
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle }) => {
+const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [playerName, setPlayerName] = useState("Player 1");
@@ -492,6 +492,8 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         handleVote(false); // Reject (isWrong) on Escape
       } else if (e.key === "s" || e.key === "S") {
         handleSkip(); // Skip on 's' or 'S'
+      } else if (e.key === "q" || e.key === "Q") {
+        handleEndGame(); // End game on 'q' or 'Q'
       }
     };
 
@@ -504,10 +506,18 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
     };
   }, [handleVote, handleSkip]);
 
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => handleVote(false), // Reject
+    onSwipedRight: () => handleVote(true), // Merge
+    onSwipedUp: () => handleSkip(), // Skip
+    trackMouse: true,
+    touchEventOptions: { passive: false },
+  });
+
   if (!gameState.gameStarted) {
     return (
       <>
-        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <Header isDarkMode={isDarkMode} />
         <LevelSelector
           onSelect={handleLevelSelect}
           onBack={() => navigate("/")}
@@ -521,7 +531,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   if (gameState.gameOver) {
     return (
       <>
-        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <Header isDarkMode={isDarkMode} />
         <GameResult
           score={gameState.score}
           language={gameState.language || "typescript"}
@@ -542,7 +552,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
   if (snippets.length === 0 || gameState.currentIndex >= snippets.length) {
     return (
       <>
-        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+        <Header isDarkMode={isDarkMode} />
         <GameResult
           score={gameState.score}
           language={gameState.language || "typescript"}
@@ -561,7 +571,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
 
   return (
     <div className="space-y-8 pb-24 pt-5">
-      <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
+      <Header isDarkMode={isDarkMode} />
       {gameState.language && (
         <h2
           className={`text-center text-2xl font-normal ${isDarkMode ? "text-white" : "text-gray-800"}`}>
@@ -575,37 +585,94 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
         isDarkMode={isDarkMode}
       />
       {snippets.length > gameState.currentIndex && (
-        <CodeDisplay
-          code={snippets[gameState.currentIndex].code}
-          explanation={snippets[gameState.currentIndex].explanation}
-          isDarkMode={isDarkMode}
-        />
+        <div {...swipeHandlers}>
+          <CodeDisplay
+            code={snippets[gameState.currentIndex].code}
+            explanation={snippets[gameState.currentIndex].explanation}
+            isDarkMode={isDarkMode}
+          />
+        </div>
       )}
-      <div className="fixed bottom-0 left-0 w-full py-4 px-6 flex justify-center space-x-4 items-center bg-white dark:bg-[#121212] shadow-md">
+      <div className="fixed bottom-0 left-0 w-full py-4 px-6 flex justify-center items-center bg-white dark:bg-[#121212] shadow-md">
         <div className={`mr-4 font-medium ${isDarkMode ? "text-white" : "text-gray-800"}`}>
           Score: {gameState.score} | Remaining: {snippets.length - (gameState.currentIndex + 1)}
         </div>
-        <button
-          onClick={() => handleVote(true)} // isCorrect=true for correct snippets
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-          Merge <span className="text-xs ml-1">[↵ Enter]</span>
-        </button>
-        <button
-          ref={rejectButtonRef}
-          onClick={() => handleVote(false)} // isCorrect=false for wrong snippets
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-          Reject <span className="text-xs ml-1">[Esc]</span>
-        </button>
-        <button
-          onClick={handleSkip}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-          Skip <span className="text-xs ml-1">[S]</span>
-        </button>
-        <button
-          onClick={handleEndGame}
-          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
-          End Game
-        </button>
+        <div className="flex gap-6">
+          <button onClick={() => handleVote(false)} className="flex flex-col items-center">
+            <span className="hidden md:block text-xs text-gray-400 mb-1">ESC</span>
+            <div className="inline-flex items-center justify-center rounded-full w-12 h-12 bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round">
+                <path d="M18 6L6 18"></path>
+                <path d="M6 6l12 12"></path>
+              </svg>
+            </div>
+            <span className="mt-1 text-sm text-white">Reject</span>
+          </button>
+          <button onClick={handleSkip} className="flex flex-col items-center">
+            <span className="hidden md:block text-xs text-gray-400 mb-1">S</span>
+            <div className="inline-flex items-center justify-center rounded-full w-12 h-12 bg-gray-500 text-white shadow-lg hover:bg-gray-600 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round">
+                <path d="m18 15-6-6-6 6" />
+              </svg>
+            </div>
+            <span className="mt-1 text-sm text-white">Skip</span>
+          </button>
+          <button onClick={() => handleVote(true)} className="flex flex-col items-center">
+            <span className="hidden md:block text-xs text-gray-400 mb-1">ENTER</span>
+            <div className="inline-flex items-center justify-center rounded-full w-12 h-12 bg-green-500 text-white shadow-lg hover:bg-green-600 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <span className="mt-1 text-sm text-white">Merge</span>
+          </button>
+          <button onClick={handleEndGame} className="flex flex-col items-center">
+            <span className="hidden md:block text-xs text-gray-400 mb-1">Q</span>
+            <div className="inline-flex items-center justify-center rounded-full w-12 h-12 bg-yellow-500 text-white shadow-lg hover:bg-yellow-600 transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                <line x1="12" y1="2" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <span className="mt-1 text-sm text-white">End</span>
+          </button>
+        </div>
       </div>
       {gameState.feedback.message && (
         <div

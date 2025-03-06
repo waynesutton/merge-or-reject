@@ -15,16 +15,20 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo and Description */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <Code2 className="w-8 h-8 text-[#EE342F]" />
-              <h1 className="text-2xl">
-                <span className="text-[#ee342f]">M</span>
-                <span className="text-[#f24723]">e</span>
-                <span className="text-[#f75a18]">r</span>
-                <span className="text-[#fb6c0c]">g</span>
-                <span className="text-[#ff7f00]">e</span>
-              </h1>
-            </div>
+            <a href="/">
+              {" "}
+              <div className="flex items-center space-x-2 mb-4">
+                {" "}
+                <Code2 className="w-8 h-8 text-[#EE342F]" />
+                <h1 className="text-2xl">
+                  <span className="text-[#ee342f]">M</span>
+                  <span className="text-[#f24723]">e</span>
+                  <span className="text-[#f75a18]">r</span>
+                  <span className="text-[#fb6c0c]">g</span>
+                  <span className="text-[#ff7f00]">e</span>
+                </h1>
+              </div>
+            </a>
             <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
               Merge or Reject AI Code Review - where developers test their code review skills vs AI.
             </p>
@@ -95,7 +99,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
         </div>
       </div>
 
-      {showConvexBox && (
+      {/* {showConvexBox && (
         <div className="fixed bottom-4 right-4 bg-black rounded-lg shadow-lg overflow-hidden">
           <a href="https://convex.link/playmerge" className="block py-2.5 px-7 flex items-center">
             <span className="text-white mr-2">Powered by</span>
@@ -108,7 +112,7 @@ const Footer: React.FC<FooterProps> = ({ isDarkMode }) => {
             </button>
           </a>
         </div>
-      )}
+      )} */}
     </footer>
   );
 };

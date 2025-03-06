@@ -16,18 +16,17 @@
 
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Code2, Trophy, Sun, Moon, LogOut } from "lucide-react";
+import { Home, Code2, Trophy, LogOut } from "lucide-react";
 
 interface HeaderProps {
   isDarkMode: boolean;
-  onThemeToggle?: () => void;
   clerk?: {
     signOut: () => Promise<void>;
     user: any;
   };
 }
 
-const Header: React.FC<HeaderProps> = ({ isDarkMode, onThemeToggle, clerk }) => {
+const Header: React.FC<HeaderProps> = ({ isDarkMode, clerk }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHomePage = location.pathname === "/";
@@ -57,20 +56,6 @@ const Header: React.FC<HeaderProps> = ({ isDarkMode, onThemeToggle, clerk }) => 
             <Trophy className={`w-5 h-5 ${isDarkMode ? "text-[#00FF94]" : "text-[#00CC77]"}`} />
             <span>Scores</span>
           </button>
-
-          {onThemeToggle && (
-            <button
-              onClick={onThemeToggle}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"
-              }`}>
-              {isDarkMode ? (
-                <Sun className="w-5 h-5 text-[#00FF94]" />
-              ) : (
-                <Moon className="w-5 h-5 text-[#00CC77]" />
-              )}
-            </button>
-          )}
 
           {clerk?.user && (
             <button

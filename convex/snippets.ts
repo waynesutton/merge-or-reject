@@ -385,7 +385,7 @@ export const checkSnippetsAvailability = query({
   returns: v.boolean(),
   handler: async (ctx, args) => {
     // Normalize language to lowercase
-    const normalizedLanguage = args.language.toLowerCase();
+    const normalizedLanguage = args.language.toLowerCase().replace("c++", "cpp");
 
     // Check if there are any snippets for this language and difficulty
     const snippets = await ctx.db

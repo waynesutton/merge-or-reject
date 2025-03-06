@@ -42,7 +42,7 @@ export const startGame = mutation({
     const snippetsNeeded = settings.snippetsPerGame[difficulty];
 
     // Normalize language to lowercase for consistency
-    const normalizedLanguage = args.language.toLowerCase();
+    const normalizedLanguage = args.language.toLowerCase().replace("c++", "cpp");
 
     console.log(
       `Fetching ${snippetsNeeded} ${difficulty} snippets for ${normalizedLanguage} (original: ${args.language})`

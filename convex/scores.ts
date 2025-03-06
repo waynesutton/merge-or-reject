@@ -24,13 +24,14 @@ export const getTopScores = query({
     })
   ),
   handler: async (ctx, args) => {
-    let query = ctx.db.query("games").order("desc");
+    let query = args.language
+      ? ctx.db
+          .query("games")
+          .withIndex("by_score_language")
+          .filter((q) => q.eq(q.field("language"), args.language))
+      : ctx.db.query("games").withIndex("by_score");
 
-    if (args.language) {
-      query = query.filter((q) => q.eq(q.field("language"), args.language));
-    }
-
-    const games = await query.take(args.limit);
+    const games = await query.order("desc").take(args.limit);
 
     // Get user info for each game
     const scores = await Promise.all(
@@ -124,10 +125,12 @@ export const getUserTopScores = query({
     const games = await ctx.db
       .query("games")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .order("desc")
-      .take(args.limit);
+      .collect();
 
-    return games.map((game) => ({
+    // Sort games by score in descending order
+    const sortedGames = games.sort((a, b) => b.score - a.score).slice(0, args.limit);
+
+    return sortedGames.map((game) => ({
       id: game._id,
       score: game.score,
       language: game.language,

@@ -75,7 +75,9 @@ export default defineSchema({
     slugId: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
-    .index("by_slug", ["slugId"]),
+    .index("by_slug", ["slugId"])
+    .index("by_score", ["score"])
+    .index("by_score_language", ["score", "language"]),
 
   // Store user statistics per language
   userStats: defineTable({
