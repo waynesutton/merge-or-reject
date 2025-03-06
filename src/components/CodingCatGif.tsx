@@ -28,7 +28,7 @@ const CodingCatGif = () => {
 
   return (
     <div className="relative group">
-      <div style={{ width: "1120px", height: "630px", cursor: "pointer" }} onClick={toggleGif}>
+      <div style={{ width: "443px", height: "811px", cursor: "pointer" }} onClick={toggleGif}>
         <video
           ref={videoRef}
           autoPlay={isPlaying}
@@ -39,11 +39,8 @@ const CodingCatGif = () => {
           onMouseEnter={() => setIsPlaying(false)}
           onMouseLeave={() => setIsPlaying(true)}
           className="rounded-lg">
-          <source
-            src="https://playmerge.ai/mergedemovideo.mp4mergedemovideo.webm"
-            type="video/webm"
-          />
-          <source src="https://playmerge.ai/mergedemovideo.mp4" type="video/mp4" />
+          <source src="https://playmerge.ai/mobilemergeplay.webm" type="video/webm" />
+          <source src="https://playmerge.ai/mobilemergeplay.mov" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>
