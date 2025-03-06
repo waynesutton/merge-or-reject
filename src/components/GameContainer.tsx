@@ -640,7 +640,9 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle
                       className="absolute top-2 right-2 text-gray-400 hover:text-white">
                       <X className="w-6 h-6" />
                     </button>
-                    <h2 className="text-2xl font-bold mb-4">Swipe to Review</h2>
+                    <h2 className="text-2xl font-bold mb-4">
+                      On Mobile: Swipe to Review. Desktop: Use the buttons below.
+                    </h2>
                     <div className="flex justify-center gap-16 mb-6">
                       <div className="flex flex-col items-center">
                         <ArrowLeft className="w-12 h-12 text-red-500 mb-2" />
