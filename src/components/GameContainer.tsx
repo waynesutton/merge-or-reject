@@ -30,6 +30,7 @@ import Header from "./Header";
 
 interface GameContainerProps {
   isDarkMode: boolean;
+  onThemeToggle: () => void;
 }
 
 interface GameState {
@@ -58,7 +59,7 @@ interface LanguageVolume {
   status?: "active" | "paused" | "removed";
 }
 
-const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
+const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode, onThemeToggle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [playerName, setPlayerName] = useState("Player 1");
@@ -517,7 +518,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
   if (!gameState.gameStarted) {
     return (
       <>
-        <Header isDarkMode={isDarkMode} />
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <LevelSelector
           onSelect={handleLevelSelect}
           onBack={() => navigate("/")}
@@ -531,7 +532,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
   if (gameState.gameOver) {
     return (
       <>
-        <Header isDarkMode={isDarkMode} />
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <GameResult
           score={gameState.score}
           language={gameState.language || "typescript"}
@@ -552,7 +553,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
   if (snippets.length === 0 || gameState.currentIndex >= snippets.length) {
     return (
       <>
-        <Header isDarkMode={isDarkMode} />
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <GameResult
           score={gameState.score}
           language={gameState.language || "typescript"}
@@ -571,7 +572,7 @@ const GameContainer: React.FC<GameContainerProps> = ({ isDarkMode }) => {
 
   return (
     <div className="space-y-8 pb-24 pt-5">
-      <Header isDarkMode={isDarkMode} />
+      <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
       {gameState.language && (
         <h2
           className={`text-center text-2xl font-normal ${isDarkMode ? "text-white" : "text-gray-800"}`}>

@@ -10,29 +10,21 @@ interface RecapParams extends Record<string, string | undefined> {
   slugId: string;
 }
 
-const RecapPage: React.FC = () => {
+interface RecapPageProps {
+  isDarkMode: boolean;
+  onThemeToggle: () => void;
+}
+
+const RecapPage: React.FC<RecapPageProps> = ({ isDarkMode, onThemeToggle }) => {
   const { slugId } = useParams<RecapParams>();
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true); // Default to dark mode
 
   // Fetch game recap data if slugId is provided
   const gameRecap = useQuery(api.games.getGameRecap, slugId ? { gameId: slugId } : "skip");
 
-  useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => setIsDarkMode(e.matches);
-
-    darkModeMediaQuery.addEventListener("change", handleChange);
-    return () => darkModeMediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  const handleThemeToggle = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
   if (!slugId || !gameRecap) {
     return (
       <div className="bg-[#000000] text-white min-h-screen">
-        <Header isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />
+        <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
         <div className="max-w-4xl mx-auto py-10 px-4">
           <h1 className="text-3xl font-bold mb-6">Loading game recap...</h1>
         </div>
@@ -43,7 +35,7 @@ const RecapPage: React.FC = () => {
   return (
     <div
       className={isDarkMode ? " text-white min-h-screen" : "bg-white text-gray-900 min-h-screen"}>
-      <Header isDarkMode={isDarkMode} onThemeToggle={handleThemeToggle} />
+      <Header isDarkMode={isDarkMode} onThemeToggle={onThemeToggle} />
       <div className="max-w-4xl mx-auto py-10 px-4">
         <Link to="/" className="inline-flex items-center text-[#EE342F] mb-6">
           <ArrowLeft className="w-4 h-4 mr-1" />
